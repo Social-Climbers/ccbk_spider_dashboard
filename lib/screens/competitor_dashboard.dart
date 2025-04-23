@@ -25,14 +25,7 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadCompetitor();
-  }
-
-  Future<void> _loadCompetitor() async {
-    final comp = await MockCompetitorService.getCompetitor(widget.competitorId);
-    if (comp != null && mounted) {
-      setState(() => competitor = comp);
-    }
+    competitor = MockCompetitorService.getCompetitor(widget.competitorId)!;
   }
 
   void _updateTopRopeScore(int routeNumber, bool isCompleted, int attempts) {
@@ -328,7 +321,8 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                           MaterialPageRoute(
                             builder: (context) => ScoringPage(
                               type: DisciplineType.topRope,
-                              competitorId: competitor.id,
+                              scores: competitor.topRopeScores,
+                              onScoreUpdate: _updateTopRopeScore,
                             ),
                           ),
                         ),
@@ -347,7 +341,8 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                           MaterialPageRoute(
                             builder: (context) => ScoringPage(
                               type: DisciplineType.boulder,
-                              competitorId: competitor.id,
+                              scores: competitor.boulderScores,
+                              onScoreUpdate: _updateBoulderScore,
                             ),
                           ),
                         ),
