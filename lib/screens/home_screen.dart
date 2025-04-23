@@ -56,6 +56,14 @@ class HomeScreen extends StatelessWidget {
                             color: Colors.white,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          '9:00 AM - 4:00 PM',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
                       ],
                     ),
                   ),

@@ -16,23 +16,100 @@
   -->
   <base href="$FLUTTER_BASE_HREF">
 
+  <!-- Basic Meta Tags -->
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="ccbk_spider_kids_comp">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="CCBK: Spider Kids 2025 - Join us on May 10th, 2025 from 9am to 4pm for an exciting climbing competition! All participants receive an Event T-Shirt and Commemorative Medal. Special thanks to our generous sponsors for supporting our young climbers with exciting prizes.">
+  <meta name="keywords" content="climbing, competition, kids, scoring, leaderboard, CCBK, Spider Kids, May 10 2025, climbing competition, youth sports">
+  <meta name="author" content="CCBK">
+  
+  <!-- Mobile Meta Tags -->
+  <meta name="theme-color" content="#FF5722">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CCBK: Spider Kids 2025">
+  <meta name="format-detection" content="telephone=no">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="CCBK: Spider Kids 2025">
+  <meta property="og:description" content="Join us on May 10th, 2025 from 9am to 4pm for the CCBK Spider Kids climbing competition. All participants receive an Event T-Shirt and Commemorative Medal. Special thanks to our generous sponsors for supporting our young climbers with exciting prizes.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ccbk-spider-kids.web.app">
+  <meta property="og:image" content="https://ccbk-spider-kids.web.app/icons/icon-512x512.png">
+  
+  <!-- Twitter Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CCBK: Spider Kids 2025">
+  <meta name="twitter:description" content="Join us on May 10th, 2025 from 9am to 4pm for the CCBK Spider Kids climbing competition. All participants receive an Event T-Shirt and Commemorative Medal. Special thanks to our generous sponsors for supporting our young climbers with exciting prizes.">
+  <meta name="twitter:image" content="https://ccbk-spider-kids.web.app/icons/icon-512x512.png">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="application-name" content="CCBK: Spider Kids 2025">
+  <meta name="msapplication-TileColor" content="#FF5722">
+  <meta name="msapplication-tap-highlight" content="no">
+  
+  <!-- Security Meta Tags -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>ccbk_spider_kids_comp</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+  
+  <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
+  
+  <title>CCBK: Spider Kids 2025</title>
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = null;
+  </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", './version.json', true);
+        xmlhttp.onload = function () {
+          if (xmlhttp.status == 200) {
+            var version = xmlhttp.responseText.split(',')[1];
+            var currentVersion = window.localStorage.getItem('version');
+            console.log('currentVersion is ' + currentVersion);
+            console.log('version is ' + version);
+            if (currentVersion && currentVersion != version) {
+              console.log('clearing cache');
+              caches.delete('flutter-app-manifest');
+              caches.delete('flutter-temp-cache');
+              caches.delete('flutter-app-cache');
+              location.reload();
+            }
+            window.localStorage.setItem('version', version);
+
+          }
+        };
+        xmlhttp.send();
+      });
+    }
+  </script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
 </body>
 </html>
