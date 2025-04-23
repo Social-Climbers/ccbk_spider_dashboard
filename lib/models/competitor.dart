@@ -6,6 +6,8 @@ class Competitor {
   final List<RouteScore> topRopeScores;
   final List<RouteScore> boulderScores;
 
+  int get bibNumber => id;
+
   Competitor({
     required this.id,
     required this.name,

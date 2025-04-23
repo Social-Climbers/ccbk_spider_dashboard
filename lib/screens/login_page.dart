@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ccbk_spider_kids_comp/screens/competitor_dashboard.dart';
+import 'package:ccbk_spider_kids_comp/models/competitor.dart';
+import 'package:ccbk_spider_kids_comp/services/firebase_service.dart';
+import 'package:ccbk_spider_kids_comp/screens/account_verification_screen.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
 
 class LoginPage extends StatefulWidget {
@@ -12,111 +14,97 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _idController = TextEditingController();
-  String? _errorMessage;
+  final _bibNumberController = TextEditingController();
+  bool _isLoading = false;
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      final id = int.parse(_idController.text);
-      if (id >= 1 && id <= 100) {
-        Navigator.pushReplacement(
+  Future<void> _checkCompetitorAccount() async {
+    setState(() => _isLoading = true);
+    try {
+      final bibNumber = int.parse(_bibNumberController.text);
+      final competitor = await FirebaseService().getCompetitor(bibNumber);
+      if (competitor != null && context.mounted) {
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CompetitorDashboard(competitorId: id),
+            builder: (context) => AccountVerificationScreen(
+              competitor: competitor,
+              email: 'competitor$bibNumber@ccbk.com',
+              password: 'password$bibNumber',
+            ),
           ),
         );
-      } else {
-        setState(() {
-          _errorMessage = 'Invalid competitor ID. Please enter a number between 1 and 100.';
-        });
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No account found for this bib number')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error checking account: $e')),
+        );
+      }
+    } finally {
+      if (context.mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
 
   @override
   void dispose() {
-    _idController.dispose();
+    _bibNumberController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 360;
-    final textScale = isSmallScreen ? 0.85 : 1.0;
-    final padding = screenWidth < 400 ? 12.0 : 16.0;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final padding = isSmallScreen ? 16.0 : 32.0;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(padding),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.1),
-                  Image.asset(
-                    'assets/images/ccbklogo.png',
-                    height: 120 * textScale,
-                    fit: BoxFit.contain,
-                  ),
-                  SizedBox(height: 32 * textScale),
-                  Text(
-                    'Spider Kids Competition',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24 * textScale,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16 * textScale),
-                  Text(
-                    'Climb Central Bangkok',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18 * textScale,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  SizedBox(height: 32 * textScale),
-                  Form(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 400),
+                  child: Form(
                     key: _formKey,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Bib Number',
+                        const SizedBox(height: 40),
+                        Image.asset(
+                          'assets/logo.png',
+                          height: 100,
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'CCBK: Spider Kids 2025',
                           style: TextStyle(
-                            fontSize: 16 * textScale,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'You can find your bib number on your competition card',
+                        const SizedBox(height: 8),
+                        const Text(
+                          '10 MAY 2025',
                           style: TextStyle(
-                            fontSize: 14 * textScale,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
+                            fontSize: 18,
+                            color: Colors.grey,
                           ),
                         ),
-                        SizedBox(height: 8 * textScale),
+                        const SizedBox(height: 40),
                         TextFormField(
-                          controller: _idController,
-                          decoration: InputDecoration(
+                          controller: _bibNumberController,
+                          decoration: const InputDecoration(
+                            labelText: 'Bib Number',
+                            border: OutlineInputBorder(),
                             hintText: 'Enter your bib number (1-100)',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.person),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16 * textScale,
-                              vertical: 12 * textScale,
-                            ),
                           ),
-                          style: TextStyle(fontSize: 16 * textScale),
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
@@ -126,82 +114,37 @@ class _LoginPageState extends State<LoginPage> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your bib number';
                             }
-                            final id = int.tryParse(value);
-                            if (id == null) {
+                            final number = int.tryParse(value);
+                            if (number == null) {
                               return 'Please enter a valid number';
                             }
-                            if (id < 1 || id > 100) {
+                            if (number < 1 || number > 100) {
                               return 'Bib number must be between 1 and 100';
                             }
                             return null;
                           },
                         ),
-                      ],
-                    ),
-                  ),
-                  if (_errorMessage != null) ...[
-                    SizedBox(height: 16 * textScale),
-                    Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 16 * textScale,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  SizedBox(height: 24 * textScale),
-                  ElevatedButton(
-                    onPressed: _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 16 * textScale,
-                        horizontal: 32 * textScale,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 18 * textScale,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 32 * textScale),
-                  Container(
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'How to Participate:',
-                          style: TextStyle(
-                            fontSize: 16 * textScale,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepOrange,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          '1. Enter your bib number above\n'
-                          '2. View your category and scores\n'
-                          '3. Record your climbs in Top Rope and Boulder',
-                          style: TextStyle(
-                            fontSize: 14 * textScale,
-                            height: 1.5,
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    if (_formKey.currentState!.validate()) {
+                                      _checkCompetitorAccount();
+                                    }
+                                  },
+                            child: _isLoading
+                                ? const CircularProgressIndicator()
+                                : const Text('Login'),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),

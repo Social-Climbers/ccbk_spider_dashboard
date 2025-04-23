@@ -18,7 +18,12 @@ class _LeaderboardPageState extends State<LeaderboardPage> with TickerProviderSt
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _competitors = MockCompetitorService.getAllCompetitors();
+    _loadCompetitors();
+  }
+
+  Future<void> _loadCompetitors() async {
+    final competitors = await MockCompetitorService.getAllCompetitors();
+    setState(() => _competitors = competitors);
   }
 
   @override

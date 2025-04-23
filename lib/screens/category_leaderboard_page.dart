@@ -23,9 +23,16 @@ class _CategoryLeaderboardPageState extends State<CategoryLeaderboardPage> with 
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _competitors = MockCompetitorService.getAllCompetitors()
-        .where((c) => c.category == widget.category)
-        .toList();
+    _loadCompetitors();
+  }
+
+  Future<void> _loadCompetitors() async {
+    final allCompetitors = await MockCompetitorService.getAllCompetitors();
+    setState(() {
+      _competitors = allCompetitors
+          .where((c) => c.category == widget.category)
+          .toList();
+    });
   }
 
   @override
