@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ccbk_spider_kids_comp/models/competitor.dart';
 import 'package:ccbk_spider_kids_comp/screens/scoring_page.dart';
 import 'package:ccbk_spider_kids_comp/screens/leaderboard_page.dart';
+import 'package:ccbk_spider_kids_comp/screens/category_leaderboard_page.dart';
 import 'package:ccbk_spider_kids_comp/services/mock_competitor_service.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
 
@@ -66,201 +67,250 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
     final padding = screenWidth < 400 ? 12.0 : 16.0;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           'Profile',
-          style: TextStyle(fontSize: isSmallScreen ? 18 : 20),
+          style: TextStyle(
+            fontSize: isSmallScreen ? 18 : 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
       ),
-      body: Stack(
+      body: Column(
         children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.only(
-              top: padding + 80, // Add padding for sponsor bar
-              left: padding,
-              right: padding,
-              bottom: padding + 80, // Add padding for leaderboard button
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+          const SponsorBar(isDarkTheme: true),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(padding),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.blueGrey, Colors.blueGrey.shade700],
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           competitor.name,
                           style: TextStyle(
-                            fontSize: 24 * textScale,
+                            fontSize: 28 * textScale,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'ID: ${competitor.id}',
-                          style: TextStyle(
-                            fontSize: 16 * textScale,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Category: ${competitor.category.displayName}',
-                          style: TextStyle(fontSize: 16 * textScale),
-                        ),
-                        Text(
-                          'Birth Year: ${competitor.birthYear}',
-                          style: TextStyle(fontSize: 16 * textScale),
-                        ),
-                        const SizedBox(height: 16),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Top Rope Score',
-                                  style: TextStyle(
-                                    fontSize: 14 * textScale,
-                                    color: Colors.grey[600],
-                                  ),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Bib ${competitor.id}',
+                                style: TextStyle(
+                                  fontSize: 16 * textScale,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
                                 ),
-                                Text(
-                                  competitor.totalTopRopeScore.toString(),
-                                  style: TextStyle(
-                                    fontSize: 20 * textScale,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Boulder Score',
-                                  style: TextStyle(
-                                    fontSize: 14 * textScale,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                Text(
-                                  competitor.totalBoulderScore.toString(),
-                                  style: TextStyle(
-                                    fontSize: 20 * textScale,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                            const SizedBox(width: 12),
+                            Text(
+                              competitor.category.displayName,
+                              style: TextStyle(
+                                fontSize: 16 * textScale,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                ),
-                SizedBox(height: padding * 2),
-                Text(
-                  'Disciplines',
-                  style: TextStyle(
-                    fontSize: 20 * textScale,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildDisciplineCard(
-                  context: context,
-                  title: 'Top Rope',
-                  description: '16 routes, max 3 attempts per route',
-                  icon: Icons.height,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ScoringPage(
-                        type: DisciplineType.topRope,
-                        scores: competitor.topRopeScores,
-                        onScoreUpdate: _updateTopRopeScore,
-                      ),
+                  Padding(
+                    padding: EdgeInsets.all(padding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildScoreCard(
+                                'Top Rope',
+                                competitor.totalTopRopeScore.toString(),
+                                Icons.height,
+                                textScale,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildScoreCard(
+                                'Boulder',
+                                competitor.totalBoulderScore.toString(),
+                                Icons.landscape,
+                                textScale,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Disciplines',
+                          style: TextStyle(
+                            fontSize: 20 * textScale,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildDisciplineCard(
+                          context: context,
+                          title: 'Top Rope',
+                          description: '16 routes, max 3 attempts per route',
+                          icon: Icons.height,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ScoringPage(
+                                type: DisciplineType.topRope,
+                                scores: competitor.topRopeScores,
+                                onScoreUpdate: _updateTopRopeScore,
+                              ),
+                            ),
+                          ),
+                          textScale: textScale,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildDisciplineCard(
+                          context: context,
+                          title: 'Boulder',
+                          description: '16 problems, attempts counted',
+                          icon: Icons.landscape,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ScoringPage(
+                                type: DisciplineType.boulder,
+                                scores: competitor.boulderScores,
+                                onScoreUpdate: _updateBoulderScore,
+                              ),
+                            ),
+                          ),
+                          textScale: textScale,
+                        ),
+                      ],
                     ),
-                  ),
-                  textScale: textScale,
-                ),
-                const SizedBox(height: 8),
-                _buildDisciplineCard(
-                  context: context,
-                  title: 'Boulder',
-                  description: '16 problems, attempts counted',
-                  icon: Icons.landscape,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ScoringPage(
-                        type: DisciplineType.boulder,
-                        scores: competitor.boulderScores,
-                        onScoreUpdate: _updateBoulderScore,
-                      ),
-                    ),
-                  ),
-                  textScale: textScale,
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            child: const SponsorBar(),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
-              padding: EdgeInsets.all(padding),
-              child: SafeArea(
-                top: false,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LeaderboardPage(),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.symmetric(horizontal: padding, vertical: 8),
+            child: SafeArea(
+              top: false,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CategoryLeaderboardPage(
+                        category: competitor.category,
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.leaderboard),
-                  label: Text(
-                    'View Leaderboard',
-                    style: TextStyle(
-                      fontSize: 16 * textScale,
-                      fontWeight: FontWeight.bold,
                     ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: padding * 2,
                   ),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: padding * 2,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.leaderboard, size: 24 * textScale),
+                    const SizedBox(width: 8),
+                    Text(
+                      'View Leaderboard',
+                      style: TextStyle(
+                        fontSize: 18 * textScale,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreCard(String title, String score, IconData icon, double textScale) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.deepOrange, size: 20 * textScale),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16 * textScale,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            score,
+            style: TextStyle(
+              fontSize: 24 * textScale,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepOrange,
             ),
           ),
         ],
@@ -277,17 +327,28 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
     required double textScale,
   }) {
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 32 * textScale,
-                color: Theme.of(context).primaryColor,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  size: 24 * textScale,
+                  color: Colors.deepOrange,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

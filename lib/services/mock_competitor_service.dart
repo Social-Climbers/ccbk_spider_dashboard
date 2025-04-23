@@ -1,188 +1,130 @@
 import 'package:ccbk_spider_kids_comp/models/competitor.dart';
 
 class MockCompetitorService {
+  static List<RouteScore> _initializeRouteScores() {
+    return List.generate(15, (i) => RouteScore(
+      routeNumber: i + 1,
+      isCompleted: false,
+      attempts: 0,
+      points: RouteScore.getPointsForRoute(i + 1),
+    ));
+  }
+
   static final List<Competitor> _competitors = [
+    // Kids A (2011-2012)
     Competitor(
       id: 1,
-      name: 'Alex Johnson',
-      birthYear: 2015,
-      category: Category.kidsC,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-    ),
-    Competitor(
-      id: 2,
-      name: 'Emma Wilson',
-      birthYear: 2014,
-      category: Category.kidsB,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-    ),
-    Competitor(
-      id: 3,
-      name: 'Liam Chen',
-      birthYear: 2013,
+      name: 'Alex Thompson',
       category: Category.kidsA,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-    ),
-    Competitor(
-      id: 4,
-      name: 'Sophia Martinez',
-      birthYear: 2015,
-      category: Category.kidsC,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-    ),
-    Competitor(
-      id: 5,
-      name: 'Noah Kim',
-      birthYear: 2014,
-      category: Category.kidsB,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-    ),
-    Competitor(
-      id: 6,
-      name: 'Isabella Wong',
-      birthYear: 2013,
-      category: Category.kidsA,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-    ),
-    Competitor(
-      id: 7,
-      name: 'Ethan Patel',
-      birthYear: 2015,
-      category: Category.kidsC,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
+      birthYear: 2011,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
     ),
     Competitor(
       id: 8,
-      name: 'Mia Rodriguez',
-      birthYear: 2014,
-      category: Category.kidsB,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
+      name: 'Sarah Chen',
+      category: Category.kidsA,
+      birthYear: 2011,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
     ),
     Competitor(
-      id: 9,
-      name: 'Lucas Smith',
-      birthYear: 2013,
+      id: 15,
+      name: 'Michael Kim',
       category: Category.kidsA,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
+      birthYear: 2012,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    Competitor(
+      id: 22,
+      name: 'Emma Davis',
+      category: Category.kidsA,
+      birthYear: 2012,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    
+    // Kids B (2013-2014)
+    Competitor(
+      id: 3,
+      name: 'Lucas Wang',
+      category: Category.kidsB,
+      birthYear: 2013,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    Competitor(
+      id: 12,
+      name: 'Sofia Garcia',
+      category: Category.kidsB,
+      birthYear: 2013,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    Competitor(
+      id: 17,
+      name: 'David Lee',
+      category: Category.kidsB,
+      birthYear: 2014,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    Competitor(
+      id: 24,
+      name: 'Olivia Brown',
+      category: Category.kidsB,
+      birthYear: 2014,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    
+    // Kids C (2015-2018)
+    Competitor(
+      id: 5,
+      name: 'Ethan Park',
+      category: Category.kidsC,
+      birthYear: 2015,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
     ),
     Competitor(
       id: 10,
-      name: 'Ava Thompson',
-      birthYear: 2015,
+      name: 'Ava Wilson',
       category: Category.kidsC,
-      topRopeScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
-      boulderScores: List.generate(15, (index) => RouteScore(
-        routeNumber: index + 1,
-        isCompleted: false,
-        attempts: 0,
-        points: RouteScore.getPointsForRoute(index + 1),
-      )),
+      birthYear: 2015,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    Competitor(
+      id: 19,
+      name: 'Noah Martinez',
+      category: Category.kidsC,
+      birthYear: 2016,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
+    ),
+    Competitor(
+      id: 25,
+      name: 'Isabella Taylor',
+      category: Category.kidsC,
+      birthYear: 2016,
+      topRopeScores: _initializeRouteScores(),
+      boulderScores: _initializeRouteScores(),
     ),
   ];
+
+  static Competitor? getCompetitor(int id) {
+    try {
+      return _competitors.firstWhere((comp) => comp.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static List<Competitor> getAllCompetitors() {
+    return List.from(_competitors);
+  }
 
   static List<Competitor> getTopRopeLeaderboard() {
     return List.from(_competitors)
@@ -192,13 +134,5 @@ class MockCompetitorService {
   static List<Competitor> getBoulderLeaderboard() {
     return List.from(_competitors)
       ..sort((a, b) => b.totalBoulderScore.compareTo(a.totalBoulderScore));
-  }
-
-  static Competitor? getCompetitor(int id) {
-    try {
-      return _competitors.firstWhere((competitor) => competitor.id == id);
-    } catch (e) {
-      return null;
-    }
   }
 } 

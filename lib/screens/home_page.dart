@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ccbk_spider_kids_comp/screens/login_page.dart';
+import 'package:ccbk_spider_kids_comp/screens/leaderboard_page.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
 
 class HomePage extends StatelessWidget {
@@ -13,6 +14,7 @@ class HomePage extends StatelessWidget {
     final padding = screenWidth < 400 ? 12.0 : 16.0;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -24,7 +26,7 @@ class HomePage extends StatelessWidget {
                 children: [
                   SizedBox(height: MediaQuery.of(context).size.height * 0.1),
                   Image.asset(
-                    'assets/logo.png',
+                    'assets/ccbklogo.png',
                     height: 120 * textScale,
                     fit: BoxFit.contain,
                   ),
@@ -67,6 +69,36 @@ class HomePage extends StatelessWidget {
                     ),
                     child: Text(
                       'Enter Competition',
+                      style: TextStyle(
+                        fontSize: 18 * textScale,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LeaderboardPage(),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 16 * textScale,
+                        horizontal: 32 * textScale,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: const BorderSide(color: Colors.deepOrange),
+                      foregroundColor: Colors.deepOrange,
+                    ),
+                    icon: const Icon(Icons.leaderboard),
+                    label: Text(
+                      'View Scores',
                       style: TextStyle(
                         fontSize: 18 * textScale,
                         fontWeight: FontWeight.bold,

@@ -45,16 +45,22 @@ class _ScoringPageState extends State<ScoringPage> {
   }
 
   Future<void> _showCompletionDialog(RouteScore score) async {
+    String title;
+    String content;
+    if (score.isCompleted) {
+      title = 'Undo Route ${score.routeNumber}?';
+      content = 'This will remove the completion status of this route. Are you sure?';
+    } else {
+      title = 'Complete Route ${score.routeNumber}?';
+      content = 'Are you sure you want to mark this route as completed?';
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Mark Route ${score.routeNumber} as ${score.isCompleted ? 'incomplete' : 'complete'}?'),
-          content: Text(
-            score.isCompleted
-                ? 'This will mark the route as not completed.'
-                : 'Are you sure you want to mark this route as completed?'
-          ),
+          title: Text(title),
+          content: Text(content),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -62,7 +68,12 @@ class _ScoringPageState extends State<ScoringPage> {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Confirm'),
+              child: Text(
+                score.isCompleted ? 'Undo' : 'Complete',
+                style: TextStyle(
+                  color: score.isCompleted ? Colors.red : Colors.deepOrange,
+                ),
+              ),
             ),
           ],
         );
@@ -96,28 +107,64 @@ class _ScoringPageState extends State<ScoringPage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 360;
-    final textScale = isSmallScreen ? 0.85 : 1.0;
-    final padding = screenWidth < 400 ? 8.0 : 16.0;
+    final isTablet = screenWidth >= 600;
+    final textScale = isSmallScreen ? 0.85 : (isTablet ? 1.2 : 1.0);
+    final padding = screenWidth < 400 ? 8.0 : (isTablet ? 24.0 : 16.0);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
         title: Text(
           widget.type == DisciplineType.topRope ? 'Top Rope' : 'Boulder',
-          style: TextStyle(fontSize: isSmallScreen ? 18 : 20),
+          style: TextStyle(
+            fontSize: isSmallScreen ? 18 : (isTablet ? 24 : 20),
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: Stack(
         children: [
           ListView.builder(
-            padding: EdgeInsets.fromLTRB(padding, padding, padding, 80),
+            padding: EdgeInsets.fromLTRB(padding, padding, padding, isTablet ? 120 : 80),
             itemCount: widget.scores.length,
             itemBuilder: (context, index) {
               final score = widget.scores[index];
               final routeNumber = score.routeNumber;
-              return _buildRouteCard(
-                routeNumber: routeNumber,
-                score: score,
-                textScale: textScale,
+              return Column(
+                children: [
+                  _buildRouteCard(
+                    routeNumber: routeNumber,
+                    score: score,
+                    textScale: textScale,
+                    isTablet: isTablet,
+                  ),
+                  if (index == widget.scores.length - 1) ...[
+                    SizedBox(height: isTablet ? 32 : 24),
+                    Center(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 32 : 24,
+                          vertical: isTablet ? 16 : 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '- End of Score Card -',
+                          style: TextStyle(
+                            fontSize: (isTablet ? 20 : 16) * textScale,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isTablet ? 48 : 32),
+                  ],
+                ],
               );
             },
           ),
@@ -136,51 +183,128 @@ class _ScoringPageState extends State<ScoringPage> {
                   ),
                 ],
               ),
-              padding: EdgeInsets.all(padding),
+              padding: EdgeInsets.symmetric(
+                horizontal: padding,
+                vertical: isTablet ? 24 : 20,
+              ),
               child: SafeArea(
                 top: false,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Score',
-                          style: TextStyle(
-                            fontSize: 14 * textScale,
-                            color: Colors.grey[600],
-                          ),
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 32 : 20,
+                          vertical: isTablet ? 20 : 16,
                         ),
-                        Text(
-                          _totalScore.toString(),
-                          style: TextStyle(
-                            fontSize: 24 * textScale,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Total\nScore',
+                                  style: TextStyle(
+                                    fontSize: (isTablet ? 16 : 14) * textScale,
+                                    color: Colors.grey[600],
+                                    height: 1.2,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: isTablet ? 12 : 8),
+                                Text(
+                                  _totalScore.toString(),
+                                  style: TextStyle(
+                                    fontSize: (isTablet ? 36 : 28) * textScale,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              height: isTablet ? 48 : 40,
+                              width: 1,
+                              color: Colors.grey[300],
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Completed\nRoutes',
+                                  style: TextStyle(
+                                    fontSize: (isTablet ? 16 : 14) * textScale,
+                                    color: Colors.grey[600],
+                                    height: 1.2,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: isTablet ? 12 : 8),
+                                Text(
+                                  '$_completedRoutes/15',
+                                  style: TextStyle(
+                                    fontSize: (isTablet ? 36 : 28) * textScale,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'Completed Routes',
-                          style: TextStyle(
-                            fontSize: 14 * textScale,
-                            color: Colors.grey[600],
+                    SizedBox(width: isTablet ? 32 : 24),
+                    SizedBox(
+                      width: isTablet ? 160 : 120,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(bottom: isTablet ? 16 : 12),
+                            child: Text(
+                              'Must tap\nwhen finish',
+                              style: TextStyle(
+                                fontSize: (isTablet ? 14 : 12) * textScale,
+                                color: Colors.red,
+                                fontWeight: FontWeight.w500,
+                                height: 1.2,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '$_completedRoutes/15',
-                          style: TextStyle(
-                            fontSize: 24 * textScale,
-                            fontWeight: FontWeight.bold,
+                          ElevatedButton(
+                            onPressed: () {
+                              // TODO: Implement score submission
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepOrange,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isTablet ? 36 : 28,
+                                vertical: isTablet ? 20 : 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Submit Score',
+                              style: TextStyle(
+                                fontSize: (isTablet ? 22 : 18) * textScale,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -196,11 +320,12 @@ class _ScoringPageState extends State<ScoringPage> {
     required int routeNumber,
     required RouteScore score,
     required double textScale,
+    required bool isTablet,
   }) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: isTablet ? 12 : 8),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isTablet ? 20 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -209,7 +334,7 @@ class _ScoringPageState extends State<ScoringPage> {
                 Text(
                   'Route $routeNumber',
                   style: TextStyle(
-                    fontSize: 18 * textScale,
+                    fontSize: (isTablet ? 22 : 18) * textScale,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -217,13 +342,13 @@ class _ScoringPageState extends State<ScoringPage> {
                 Text(
                   '${score.points} points',
                   style: TextStyle(
-                    fontSize: 16 * textScale,
+                    fontSize: (isTablet ? 20 : 16) * textScale,
                     color: Colors.grey[600],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: isTablet ? 20 : 16),
             Row(
               children: [
                 Expanded(
@@ -233,24 +358,32 @@ class _ScoringPageState extends State<ScoringPage> {
                       Text(
                         'Attempts',
                         style: TextStyle(
-                          fontSize: 14 * textScale,
+                          fontSize: (isTablet ? 16 : 14) * textScale,
                           color: Colors.grey[600],
                         ),
                       ),
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
+                            icon: Icon(
+                              Icons.remove_circle_outline,
+                              size: isTablet ? 32 : 24,
+                            ),
                             onPressed: score.attempts > 0
                                 ? () => _updateAttempts(score, score.attempts - 1)
                                 : null,
                           ),
                           Text(
                             '${score.attempts}',
-                            style: TextStyle(fontSize: 16 * textScale),
+                            style: TextStyle(
+                              fontSize: (isTablet ? 20 : 16) * textScale,
+                            ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
+                            icon: Icon(
+                              Icons.add_circle_outline,
+                              size: isTablet ? 32 : 24,
+                            ),
                             onPressed: widget.type == DisciplineType.topRope && score.attempts >= 3
                                 ? null
                                 : () => _updateAttempts(score, score.attempts + 1),
@@ -259,7 +392,7 @@ class _ScoringPageState extends State<ScoringPage> {
                             Text(
                               '(max 3)',
                               style: TextStyle(
-                                fontSize: 12 * textScale,
+                                fontSize: (isTablet ? 14 : 12) * textScale,
                                 color: Colors.grey[600],
                               ),
                             ),
@@ -274,18 +407,37 @@ class _ScoringPageState extends State<ScoringPage> {
                     Text(
                       'Completed',
                       style: TextStyle(
-                        fontSize: 14 * textScale,
+                        fontSize: (isTablet ? 16 : 14) * textScale,
                         color: Colors.grey[600],
                       ),
                     ),
-                    Switch(
-                      value: score.isCompleted,
-                      onChanged: widget.type == DisciplineType.topRope && score.attempts >= 3
+                    GestureDetector(
+                      onTap: widget.type == DisciplineType.topRope && score.attempts >= 3
                           ? null
-                          : (value) => _showCompletionDialog(score),
-                      activeColor: widget.type == DisciplineType.topRope && score.attempts >= 3
-                          ? Colors.red
-                          : Theme.of(context).primaryColor,
+                          : () => _showCompletionDialog(score),
+                      child: Container(
+                        width: isTablet ? 36 : 28,
+                        height: isTablet ? 36 : 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: score.isCompleted
+                              ? Colors.deepOrange
+                              : Colors.grey[200],
+                          border: Border.all(
+                            color: score.isCompleted
+                                ? Colors.deepOrange
+                                : Colors.grey[400]!,
+                            width: 2,
+                          ),
+                        ),
+                        child: score.isCompleted
+                            ? Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: isTablet ? 24 : 20,
+                              )
+                            : null,
+                      ),
                     ),
                   ],
                 ),

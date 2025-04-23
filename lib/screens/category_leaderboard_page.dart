@@ -3,14 +3,19 @@ import 'package:ccbk_spider_kids_comp/models/competitor.dart';
 import 'package:ccbk_spider_kids_comp/services/mock_competitor_service.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
 
-class LeaderboardPage extends StatefulWidget {
-  const LeaderboardPage({super.key});
+class CategoryLeaderboardPage extends StatefulWidget {
+  final Category category;
+
+  const CategoryLeaderboardPage({
+    super.key,
+    required this.category,
+  });
 
   @override
-  State<LeaderboardPage> createState() => _LeaderboardPageState();
+  State<CategoryLeaderboardPage> createState() => _CategoryLeaderboardPageState();
 }
 
-class _LeaderboardPageState extends State<LeaderboardPage> with TickerProviderStateMixin {
+class _CategoryLeaderboardPageState extends State<CategoryLeaderboardPage> with TickerProviderStateMixin {
   late TabController _tabController;
   late List<Competitor> _competitors;
 
@@ -18,7 +23,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> with TickerProviderSt
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _competitors = MockCompetitorService.getAllCompetitors();
+    _competitors = MockCompetitorService.getAllCompetitors()
+        .where((c) => c.category == widget.category)
+        .toList();
   }
 
   @override
@@ -27,8 +34,19 @@ class _LeaderboardPageState extends State<LeaderboardPage> with TickerProviderSt
     super.dispose();
   }
 
-  List<Competitor> _getFilteredCompetitors(Category category) {
-    return _competitors.where((c) => c.category == category).toList();
+  List<Competitor> _getSortedCompetitors(ScoreType scoreType) {
+    switch (scoreType) {
+      case ScoreType.topRope:
+        return List.from(_competitors)
+          ..sort((a, b) => b.totalTopRopeScore.compareTo(a.totalTopRopeScore));
+      case ScoreType.boulder:
+        return List.from(_competitors)
+          ..sort((a, b) => b.totalBoulderScore.compareTo(a.totalBoulderScore));
+      case ScoreType.combined:
+        return List.from(_competitors)
+          ..sort((a, b) => (b.totalTopRopeScore + b.totalBoulderScore)
+              .compareTo(a.totalTopRopeScore + a.totalBoulderScore));
+    }
   }
 
   @override
@@ -38,92 +56,56 @@ class _LeaderboardPageState extends State<LeaderboardPage> with TickerProviderSt
     final textScale = isSmallScreen ? 0.85 : 1.0;
     final padding = screenWidth < 400 ? 12.0 : 16.0;
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: Text(
-            'Leaderboard',
-            style: TextStyle(
-              fontSize: isSmallScreen ? 18 : 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Kids A'),
-              Tab(text: 'Kids B'),
-              Tab(text: 'Kids C'),
-            ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          widget.category.displayName,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 18 : 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        body: Column(
-          children: [
-            const SponsorBar(isDarkTheme: false),
-            TabBar(
-              controller: _tabController,
-              tabs: const [
-                Tab(text: 'Top Rope'),
-                Tab(text: 'Boulder'),
-                Tab(text: 'Combined'),
-              ],
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildCategoryContent(Category.kidsA, textScale, padding),
-                  _buildCategoryContent(Category.kidsB, textScale, padding),
-                  _buildCategoryContent(Category.kidsC, textScale, padding),
-                ],
-              ),
-            ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Top Rope'),
+            Tab(text: 'Boulder'),
+            Tab(text: 'Combined'),
           ],
         ),
       ),
+      body: Column(
+        children: [
+          const SponsorBar(isDarkTheme: false),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildLeaderboardList(
+                  _getSortedCompetitors(ScoreType.topRope),
+                  textScale,
+                  padding,
+                  ScoreType.topRope,
+                ),
+                _buildLeaderboardList(
+                  _getSortedCompetitors(ScoreType.boulder),
+                  textScale,
+                  padding,
+                  ScoreType.boulder,
+                ),
+                _buildLeaderboardList(
+                  _getSortedCompetitors(ScoreType.combined),
+                  textScale,
+                  padding,
+                  ScoreType.combined,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
-  }
-
-  Widget _buildCategoryContent(Category category, double textScale, double padding) {
-    return TabBarView(
-      controller: _tabController,
-      children: [
-        _buildLeaderboardList(
-          _getFilteredAndSortedCompetitors(category, ScoreType.topRope),
-          textScale,
-          padding,
-          ScoreType.topRope,
-        ),
-        _buildLeaderboardList(
-          _getFilteredAndSortedCompetitors(category, ScoreType.boulder),
-          textScale,
-          padding,
-          ScoreType.boulder,
-        ),
-        _buildLeaderboardList(
-          _getFilteredAndSortedCompetitors(category, ScoreType.combined),
-          textScale,
-          padding,
-          ScoreType.combined,
-        ),
-      ],
-    );
-  }
-
-  List<Competitor> _getFilteredAndSortedCompetitors(Category category, ScoreType scoreType) {
-    final filtered = _getFilteredCompetitors(category);
-    switch (scoreType) {
-      case ScoreType.topRope:
-        return List.from(filtered)
-          ..sort((a, b) => b.totalTopRopeScore.compareTo(a.totalTopRopeScore));
-      case ScoreType.boulder:
-        return List.from(filtered)
-          ..sort((a, b) => b.totalBoulderScore.compareTo(a.totalBoulderScore));
-      case ScoreType.combined:
-        return List.from(filtered)
-          ..sort((a, b) => (b.totalTopRopeScore + b.totalBoulderScore)
-              .compareTo(a.totalTopRopeScore + a.totalBoulderScore));
-    }
   }
 
   Widget _buildLeaderboardList(

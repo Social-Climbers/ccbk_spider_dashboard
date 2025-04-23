@@ -73,7 +73,7 @@ class _CompetitorLoginState extends State<CompetitorLogin> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Image.asset(
-                    'assets/logo.png',
+                    'assets/images/ccbklogo.png',
                     height: 120 * textScale,
                     fit: BoxFit.contain,
                   ),

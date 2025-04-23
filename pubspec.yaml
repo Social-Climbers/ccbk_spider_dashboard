@@ -65,6 +65,17 @@ flutter:
   assets:
     - assets/images/
     - assets/sponsors/
+    - assets/sponsors/cha.png
+    - assets/sponsors/cs.png
+    - assets/sponsors/la.png
+    - assets/sponsors/mojo.png
+    - assets/sponsors/petz.png
+    - assets/sponsors/poda.png
+    - assets/sponsors/scarpa.png
+    - assets/sponsors/shopp.png
+    - assets/sponsors/vola.png
+    - assets/images/ccbklogo.png
+    - assets/images/ccbklogow.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
