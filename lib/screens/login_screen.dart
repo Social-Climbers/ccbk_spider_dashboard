@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => CompetitorDashboard(competitorId: id),
+            builder: (context) => CompetitorDashboard(),
           ),
         );
       } else {

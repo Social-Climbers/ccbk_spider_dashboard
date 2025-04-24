@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ccbk_spider_kids_comp/screens/competitor_dashboard.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ccbk_spider_kids_comp/screens/competitor_confirmation_page.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
 
 class LoginPage extends StatefulWidget {
@@ -12,30 +13,55 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _idController = TextEditingController();
+  final _bibNumberController = TextEditingController();
   String? _errorMessage;
+  bool _isLoading = false;
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      final id = int.parse(_idController.text);
-      if (id >= 1 && id <= 100) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CompetitorDashboard(competitorId: id),
-          ),
-        );
-      } else {
-        setState(() {
-          _errorMessage = 'Invalid competitor ID. Please enter a number between 1 and 100.';
-        });
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final bibNumber = _bibNumberController.text.trim();
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('competitors')
+          .where('id', isEqualTo: int.parse(bibNumber))
+          .get();
+
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      if (querySnapshot.docs.isEmpty) {
+        setState(() => _errorMessage = 'Competitor not found');
+        return;
       }
+
+      final competitorData = querySnapshot.docs.first.data();
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CompetitorConfirmationPage(
+            competitorData: competitorData,
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error: ${e.toString()}';
+      });
     }
   }
 
   @override
   void dispose() {
-    _idController.dispose();
+    _bibNumberController.dispose();
     super.dispose();
   }
 
@@ -106,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         SizedBox(height: 8 * textScale),
                         TextFormField(
-                          controller: _idController,
+                          controller: _bibNumberController,
                           decoration: InputDecoration(
                             hintText: 'Enter your bib number (1-100)',
                             border: const OutlineInputBorder(),
@@ -130,9 +156,6 @@ class _LoginPageState extends State<LoginPage> {
                             if (id == null) {
                               return 'Please enter a valid number';
                             }
-                            if (id < 1 || id > 100) {
-                              return 'Bib number must be between 1 and 100';
-                            }
                             return null;
                           },
                         ),
@@ -152,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                   SizedBox(height: 24 * textScale),
                   ElevatedButton(
-                    onPressed: _handleLogin,
+                    onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(
                         vertical: 16 * textScale,
@@ -162,13 +185,22 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 18 * textScale,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? SizedBox(
+                            height: 20 * textScale,
+                            width: 20 * textScale,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 18 * textScale,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                   SizedBox(height: 32 * textScale),
                   Container(

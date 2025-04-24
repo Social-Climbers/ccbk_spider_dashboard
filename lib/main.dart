@@ -1,8 +1,18 @@
+import 'package:ccbk_spider_kids_comp/firebase_options.dart';
+import 'package:ccbk_spider_kids_comp/screens/competitor_dashboard.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:ccbk_spider_kids_comp/screens/home_screen.dart';
+import 'package:ccbk_spider_kids_comp/screens/dashboard_screen.dart';
 import 'package:ccbk_spider_kids_comp/widgets/browser_check.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -42,7 +52,28 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         useMaterial3: true,
       ),
-      home: const BrowserCheck(child: HomeScreen()),
+      home: const BrowserCheck(child: AuthGate()),
+    );
+  }
+}
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          print("User Not logged in");
+
+          return HomeScreen();
+        }
+
+        print("User Logged in");
+
+        return CompetitorDashboard();
+      },
     );
   }
 }

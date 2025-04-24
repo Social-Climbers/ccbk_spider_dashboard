@@ -38,7 +38,7 @@ class _CompetitorLoginState extends State<CompetitorLogin> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => CompetitorDashboard(competitorId: competitorId),
+          builder: (context) => CompetitorDashboard(),
         ),
       );
     }

@@ -3,6 +3,7 @@ import 'package:ccbk_spider_kids_comp/models/competitor.dart';
 import 'package:ccbk_spider_kids_comp/screens/competitor_info_page.dart';
 import 'package:ccbk_spider_kids_comp/screens/login_page.dart';
 import 'package:ccbk_spider_kids_comp/screens/leaderboard_page.dart';
+import 'package:ccbk_spider_kids_comp/screens/debug_page.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -11,6 +12,18 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.bug_report),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DebugPage()),
+            );
+          },
+        ),
+        title: const Text('CCBK: Spider Kids 2025'),
+      ),
       body: Stack(
         children: [
           SingleChildScrollView(

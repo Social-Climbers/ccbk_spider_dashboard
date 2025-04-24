@@ -445,66 +445,33 @@ class _RouteCard extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: score.attempts > 0 
-                                    ? Colors.deepOrange
-                                    : Colors.grey[300]!,
-                                width: 2,
-                              ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.remove_circle_outline,
+                              size: isTablet ? 32 : 24,
                             ),
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.remove_circle_outline,
-                                size: isTablet ? 32 : 24,
-                                color: score.attempts > 0 
-                                    ? Colors.deepOrange
-                                    : Colors.grey[300],
-                              ),
-                              onPressed: score.attempts > 0
-                                  ? () => onAttemptsUpdate(score.attempts - 1)
-                                  : null,
-                              tooltip: score.attempts > 0 ? 'Decrease attempts' : 'Minimum attempts reached',
+                            onPressed: score.attempts > 0
+                                ? () => onAttemptsUpdate(score.attempts - 1)
+                                : null,
+                            tooltip: score.attempts > 0 ? 'Decrease attempts' : 'Minimum attempts reached',
+                          ),
+                          Text(
+                            '${score.attempts}',
+                            style: TextStyle(
+                              fontSize: (isTablet ? 20 : 16) * textScale,
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isTablet ? 16 : 12,
+                          IconButton(
+                            icon: Icon(
+                              Icons.add_circle_outline,
+                              size: isTablet ? 32 : 24,
                             ),
-                            child: Text(
-                              '${score.attempts}',
-                              style: TextStyle(
-                                fontSize: (isTablet ? 20 : 16) * textScale,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: (type != DisciplineType.topRope || score.attempts < _ScoringPageState._maxTopRopeAttempts)
-                                    ? Colors.deepOrange
-                                    : Colors.grey[300]!,
-                                width: 2,
-                              ),
-                            ),
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.add_circle_outline,
-                                size: isTablet ? 32 : 24,
-                                color: (type != DisciplineType.topRope || score.attempts < _ScoringPageState._maxTopRopeAttempts)
-                                    ? Colors.deepOrange
-                                    : Colors.grey[300],
-                              ),
-                              onPressed: type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts
-                                  ? null
-                                  : () => onAttemptsUpdate(score.attempts + 1),
-                              tooltip: type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts
-                                  ? 'Maximum 3 attempts allowed for Top Rope'
-                                  : 'Add attempt',
-                            ),
+                            onPressed: type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts
+                                ? null
+                                : () => onAttemptsUpdate(score.attempts + 1),
+                            tooltip: type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts
+                                ? 'Maximum 3 attempts allowed for Top Rope'
+                                : 'Add attempt',
                           ),
                           if (type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts)
                             Text(
@@ -542,9 +509,7 @@ class _RouteCard extends StatelessWidget {
                               ? Theme.of(context).colorScheme.primary
                               : Colors.grey[200],
                           border: Border.all(
-                            color: score.isCompleted
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.deepOrange,
+                            color: Theme.of(context).colorScheme.primary,
                             width: 2,
                           ),
                         ),

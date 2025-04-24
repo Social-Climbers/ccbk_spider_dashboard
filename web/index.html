@@ -15,61 +15,51 @@
     the `--base-href` argument provided to `flutter build`.
   -->
   <base href="$FLUTTER_BASE_HREF">
-
-  <!-- Basic Meta Tags -->
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="CCBK: Spider Kids 2025 - Join us on May 10th, 2025 from 9am to 4pm for an exciting climbing competition! All participants receive an Event T-Shirt and Commemorative Medal. Special thanks to our generous sponsors for supporting our young climbers with exciting prizes.">
-  <meta name="keywords" content="climbing, competition, kids, scoring, leaderboard, CCBK, Spider Kids, May 10 2025, climbing competition, youth sports">
-  <meta name="author" content="CCBK">
-  
-  <!-- Mobile Meta Tags -->
-  <meta name="theme-color" content="#FF5722">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="CCBK: Spider Kids 2025">
-  <meta name="format-detection" content="telephone=no">
-  
-  <!-- Open Graph Meta Tags -->
-  <meta property="og:title" content="CCBK: Spider Kids 2025">
-  <meta property="og:description" content="Join us on May 10th, 2025 from 9am to 4pm for the CCBK Spider Kids climbing competition. All participants receive an Event T-Shirt and Commemorative Medal. Special thanks to our generous sponsors for supporting our young climbers with exciting prizes.">
+  <meta property="og:image" content="https://iili.io/3dirWhB.jpg" />
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://ccbk-spider-kids.web.app">
-  <meta property="og:image" content="https://ccbk-spider-kids.web.app/icons/icon-512x512.png">
-  
-  <!-- Twitter Meta Tags -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="CCBK: Spider Kids 2025">
-  <meta name="twitter:description" content="Join us on May 10th, 2025 from 9am to 4pm for the CCBK Spider Kids climbing competition. All participants receive an Event T-Shirt and Commemorative Medal. Special thanks to our generous sponsors for supporting our young climbers with exciting prizes.">
-  <meta name="twitter:image" content="https://ccbk-spider-kids.web.app/icons/icon-512x512.png">
-  
-  <!-- PWA Meta Tags -->
-  <meta name="application-name" content="CCBK: Spider Kids 2025">
-  <meta name="msapplication-TileColor" content="#FF5722">
-  <meta name="msapplication-tap-highlight" content="no">
-  
-  <!-- Security Meta Tags -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';">
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="DENY">
-  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
-  
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-  
-  <!-- Manifest -->
-  <link rel="manifest" href="manifest.json">
-  
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="CCBK: Spider Kids 2025 Competition">
+
+  <!-- Primary Meta Tags -->
   <title>CCBK: Spider Kids 2025</title>
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    const serviceWorkerVersion = null;
-  </script>
-  <!-- This script adds the flutter initialization JS code -->
-  <script src="flutter.js" defer></script>
-</head>
-<body>
+  <meta name="title" content="CCBK: Spider Kids 2025">
+  <meta name="description" content="CCBK: Spider Kids 2025 Competition">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ccbk-spider-kids-2025.web.app/">
+  <meta property="og:title" content="CCBK: Spider Kids 2025">
+  <meta property="og:description" content="CCBK: Spider Kids 2025 Competition">
+  <meta property="og:image" content="https://iili.io/3dirWhB.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://ccbk-spider-kids-2025.web.app/">
+  <meta property="twitter:title" content="CCBK: Spider Kids 2025">
+  <meta property="twitter:description" content="CCBK: Spider Kids 2025 Competition">
+  <meta property="twitter:image" content="https://iili.io/3dirWhB.jpg">
+
+  <!-- Optional Meta Tags -->
+  <meta name="keywords" content="CCBK, Spider Kids, Climbing Competition">
+  <meta name="robots" content="index, follow">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="language" content="English">
+  <meta name="revisit-after" content="7 days">
+  <meta name="author" content="">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="CCBK: Spider Kids 2025">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>CCBK: Spider Kids 2025</title>
+  <link rel="manifest" href="manifest.json">
+
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
@@ -89,27 +79,13 @@
               location.reload();
             }
             window.localStorage.setItem('version', version);
-
           }
         };
         xmlhttp.send();
       });
     }
   </script>
-  <script>
-    window.addEventListener('load', function(ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
-</body>
+  <script src="flutter_bootstrap.js" async></script>
+</head>
+
 </html>
