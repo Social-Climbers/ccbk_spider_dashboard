@@ -12,7 +12,7 @@ class SponsorBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: isDarkTheme ? Colors.black : Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Column(
         children: [
           Row(
@@ -25,7 +25,7 @@ class SponsorBar extends StatelessWidget {
               _buildSponsorLogo('assets/sponsors/petz.png'),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -43,7 +43,7 @@ class SponsorBar extends StatelessWidget {
   Widget _buildSponsorLogo(String assetPath) {
     return Image.asset(
       assetPath,
-      height: 30,
+      height: 40,
       color: isDarkTheme ? Colors.white : Colors.black,
       fit: BoxFit.contain,
     );

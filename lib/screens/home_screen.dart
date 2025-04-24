@@ -32,51 +32,47 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  height: 300,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.secondary,
-                      ],
+                  height: 350,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/cover.jpg'),
+                      fit: BoxFit.cover,
                     ),
                   ),
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          'assets/images/ccbklogow.png',
-                          height: 120,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'SPIDER KIDS',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '10 MAY 2025',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '9:00 AM - 4:00 PM',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
+                        // Image.asset(
+                        //   'assets/images/ccbklogow.png',
+                        //   height: 120,
+                        //   fit: BoxFit.contain,
+                        // ),
+                        // const SizedBox(height: 24),
+                        // const Text(
+                        //   'SPIDER KIDS',
+                        //   style: TextStyle(
+                        //     fontSize: 32,
+                        //     fontWeight: FontWeight.bold,
+                        //     color: Colors.white,
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 8),
+                        // const Text(
+                        //   '10 MAY 2025',
+                        //   style: TextStyle(
+                        //     fontSize: 18,
+                        //     color: Colors.white,
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 4),
+                        // const Text(
+                        //   '9:00 AM - 4:00 PM',
+                        //   style: TextStyle(
+                        //     fontSize: 16,
+                        //     color: Colors.white,
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
@@ -203,6 +199,9 @@ class HomeScreen extends StatelessWidget {
                       ),
                     );
                   },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                  ),
                   child: const Text(
                     'Enter Competition',
                     style: TextStyle(

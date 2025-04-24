@@ -159,7 +159,7 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '#${_competitorId ?? '...'}',
+                                '${_competitorId ?? '...'}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -182,13 +182,16 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(
-                                Icons.category,
+                                Icons.person,
                                 color: Colors.white,
                                 size: 16,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                _category?.toUpperCase() ?? '...',
+                                _category == 'kidsA' ? 'Kids A' :
+                                _category == 'kidsB' ? 'Kids B' :
+                                _category == 'kidsC' ? 'Kids C' :
+                                (_category ?? '...'),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -643,7 +646,7 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

@@ -187,7 +187,7 @@ class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage>
                                 child: OutlinedButton.icon(
                                   onPressed: _isLoading ? null : () => Navigator.pop(context),
                                   style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(vertical: 20),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -204,7 +204,7 @@ class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage>
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Theme.of(context).primaryColor,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(vertical: 20),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),

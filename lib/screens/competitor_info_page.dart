@@ -65,7 +65,7 @@ class _CompetitorInfoPageState extends State<CompetitorInfoPage> {
         children: [
           SingleChildScrollView(
             padding: EdgeInsets.only(
-              top: padding + 60,
+              top: padding + 120,
               left: padding,
               right: padding,
               bottom: padding,
