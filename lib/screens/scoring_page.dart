@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ccbk_spider_kids_comp/models/competitor.dart';
+import 'package:ccbk_spider_kids_comp/services/score_service.dart';
+import 'package:ccbk_spider_kids_comp/services/local_storage_service.dart';
 
 enum DisciplineType {
   topRope,
@@ -8,14 +10,10 @@ enum DisciplineType {
 
 class ScoringPage extends StatefulWidget {
   final DisciplineType type;
-  final List<RouteScore> scores;
-  final Function(int routeNumber, bool isCompleted, int attempts) onScoreUpdate;
 
   const ScoringPage({
     super.key,
     required this.type,
-    required this.scores,
-    required this.onScoreUpdate,
   });
 
   @override
@@ -31,23 +29,43 @@ class _ScoringPageState extends State<ScoringPage> {
   int _totalScore = 0;
   int _completedRoutes = 0;
   List<RouteScore>? _sortedCompletedRoutes;
+  int? _competitorId;
+  late Stream<List<RouteScore>> _scoresStream;
 
   @override
   void initState() {
     super.initState();
-    _calculateScore();
+    _loadCompetitorId();
   }
 
-  @override
-  void didUpdateWidget(ScoringPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.scores != widget.scores) {
-      _calculateScore();
+  Future<void> _loadCompetitorId() async {
+    try {
+      final id = await LocalStorageService.getCompetitorId();
+      print('Loaded competitor ID: $id');
+      if (id != null) {
+        setState(() {
+          _competitorId = id;
+          _scoresStream = ScoreService.getScoresStream(id, widget.type);
+        });
+      } else {
+        print('No competitor ID found in local storage');
+      }
+    } catch (e) {
+      print('Error loading competitor ID: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading competitor ID: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  void _calculateScore() {
-    _sortedCompletedRoutes = widget.scores
+  void _calculateScore(List<RouteScore> scores) {
+    print('Calculating score for ${scores.length} routes');
+    _sortedCompletedRoutes = scores
         .where((score) => score.isCompleted)
         .toList()
       ..sort((a, b) => b.routeNumber.compareTo(a.routeNumber));
@@ -56,6 +74,7 @@ class _ScoringPageState extends State<ScoringPage> {
     _totalScore = _sortedCompletedRoutes!
         .take(_maxRoutesForScore)
         .fold(0, (sum, score) => sum + score.points);
+    print('Calculated score: $_totalScore, completed routes: $_completedRoutes');
   }
 
   Future<void> _showCompletionDialog(RouteScore score) async {
@@ -94,16 +113,18 @@ class _ScoringPageState extends State<ScoringPage> {
       },
     );
 
-    if (confirmed ?? false) {
+    if (confirmed ?? false && _competitorId != null) {
       try {
-        widget.onScoreUpdate(
+        // If marking as completed and attempts is 0, increment to 1
+        final newAttempts = !score.isCompleted && score.attempts == 0 ? 1 : score.attempts;
+        
+        await ScoreService.updateScore(
+          _competitorId!,
+          widget.type,
           score.routeNumber,
           !score.isCompleted,
-          score.attempts,
+          newAttempts,
         );
-        setState(() {
-          _calculateScore();
-        });
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -121,23 +142,24 @@ class _ScoringPageState extends State<ScoringPage> {
     if (newAttempts < _minAttempts) return;
     if (widget.type == DisciplineType.topRope && newAttempts > _maxTopRopeAttempts) return;
 
-    try {
-      widget.onScoreUpdate(
-        score.routeNumber,
-        score.isCompleted,
-        newAttempts,
-      );
-      setState(() {
-        _calculateScore();
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update attempts: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+    if (_competitorId != null) {
+      try {
+        ScoreService.updateScore(
+          _competitorId!,
+          widget.type,
+          score.routeNumber,
+          score.isCompleted,
+          newAttempts,
         );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update attempts: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -227,6 +249,14 @@ class _ScoringPageState extends State<ScoringPage> {
       );
     }
 
+    if (_competitorId == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -240,143 +270,227 @@ class _ScoringPageState extends State<ScoringPage> {
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          if (isDesktop)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              color: Colors.amber[100],
-              child: Row(
+      body: StreamBuilder<List<RouteScore>>(
+        stream: _scoresStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            print('Stream error: ${snapshot.error}');
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            print('No data in snapshot');
+            return const Center(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.warning_amber_rounded,
-                    color: Colors.amber[800],
-                    size: 20,
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 48,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(height: 16),
                   Text(
-                    'This app is designed for mobile devices. Some features may not work as expected on desktop.',
-                    style: TextStyle(
-                      color: Colors.amber[900],
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    'No scores found. Please try again later.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final scores = snapshot.data!;
+          print('Received ${scores.length} scores from stream');
+          _calculateScore(scores);
+
+          return Stack(
+            children: [
+              Column(
+                children: [
+                  if (isDesktop)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      color: Colors.amber[100],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.amber[800],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'This app is designed for mobile devices. Some features may not work as expected on desktop.',
+                            style: TextStyle(
+                              color: Colors.amber[900],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    color: Colors.blue[50],
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue[700],
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Remember to record the number of attempts for each route, even if not completed. This is important for scoring!',
+                            style: TextStyle(
+                              color: Colors.blue[900],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.fromLTRB(padding, padding, padding, isTablet ? 120 : 80),
+                      itemCount: scores.length,
+                      itemBuilder: (context, index) {
+                        final score = scores[index];
+                        return _RouteCard(
+                          routeNumber: score.routeNumber,
+                          score: score,
+                          textScale: textScale,
+                          isTablet: isTablet,
+                          type: widget.type,
+                          onAttemptsUpdate: (newAttempts) => _updateAttempts(score, newAttempts),
+                          onCompletionToggle: () => _showCompletionDialog(score),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
-            ),
-          Padding(
-            padding: EdgeInsets.only(top: isDesktop ? 40 : 0),
-            child: ListView.builder(
-              padding: EdgeInsets.fromLTRB(padding, padding, padding, isTablet ? 120 : 80),
-              itemCount: widget.scores.length,
-              itemBuilder: (context, index) {
-                final score = widget.scores[index];
-                return _RouteCard(
-                  routeNumber: score.routeNumber,
-                  score: score,
-                  textScale: textScale,
-                  isTablet: isTablet,
-                  type: widget.type,
-                  onAttemptsUpdate: (newAttempts) => _updateAttempts(score, newAttempts),
-                  onCompletionToggle: () => _showCompletionDialog(score),
-                );
-              },
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: padding,
-                vertical: isTablet ? 16 : 12,
-              ),
-              child: SafeArea(
-                top: false,
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isTablet ? 24 : 16,
-                    vertical: isTablet ? 12 : 8,
-                  ),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Total\nScore',
-                            style: TextStyle(
-                              fontSize: (isTablet ? 14 : 12) * textScale,
-                              color: Colors.grey[600],
-                              height: 1.2,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: isTablet ? 8 : 4),
-                          Text(
-                            _totalScore.toString(),
-                            style: TextStyle(
-                              fontSize: (isTablet ? 28 : 24) * textScale,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        height: isTablet ? 40 : 32,
-                        width: 1,
-                        color: Colors.grey[300],
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Completed\nRoutes',
-                            style: TextStyle(
-                              fontSize: (isTablet ? 14 : 12) * textScale,
-                              color: Colors.grey[600],
-                              height: 1.2,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: isTablet ? 8 : 4),
-                          Text(
-                            '$_completedRoutes/15',
-                            style: TextStyle(
-                              fontSize: (isTablet ? 28 : 24) * textScale,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                    color: Theme.of(context).cardColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, -2),
                       ),
                     ],
                   ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: padding,
+                    vertical: isTablet ? 16 : 12,
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTablet ? 24 : 16,
+                        vertical: isTablet ? 12 : 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Total\nScore',
+                                style: TextStyle(
+                                  fontSize: (isTablet ? 14 : 12) * textScale,
+                                  color: Colors.grey[600],
+                                  height: 1.2,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: isTablet ? 8 : 4),
+                              Text(
+                                _totalScore.toString(),
+                                style: TextStyle(
+                                  fontSize: (isTablet ? 28 : 24) * textScale,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            height: isTablet ? 40 : 32,
+                            width: 1,
+                            color: Colors.grey[300],
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Completed\nRoutes',
+                                style: TextStyle(
+                                  fontSize: (isTablet ? 14 : 12) * textScale,
+                                  color: Colors.grey[600],
+                                  height: 1.2,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: isTablet ? 8 : 4),
+                              Text(
+                                '$_completedRoutes/15',
+                                style: TextStyle(
+                                  fontSize: (isTablet ? 28 : 24) * textScale,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -497,7 +611,7 @@ class _RouteCard extends StatelessWidget {
                       ),
                     ),
                     GestureDetector(
-                      onTap: type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts
+                      onTap: type == DisciplineType.topRope && routeNumber <= 3
                           ? null
                           : onCompletionToggle,
                       child: Container(

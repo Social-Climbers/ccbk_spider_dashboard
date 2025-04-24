@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:ccbk_spider_kids_comp/screens/settings_page.dart';
 import 'package:ccbk_spider_kids_comp/screens/scoring_page.dart';
-import 'package:ccbk_spider_kids_comp/models/competitor.dart';
-import 'package:ccbk_spider_kids_comp/screens/leaderboard_page.dart';
-import 'package:ccbk_spider_kids_comp/screens/category_leaderboard_page.dart';
 import 'package:ccbk_spider_kids_comp/services/local_storage_service.dart';
-import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
+import 'package:ccbk_spider_kids_comp/services/score_service.dart';
+import 'package:ccbk_spider_kids_comp/screens/settings_page.dart';
+import 'package:ccbk_spider_kids_comp/screens/leaderboard_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CompetitorDashboard extends StatefulWidget {
   const CompetitorDashboard({super.key});
@@ -16,9 +14,11 @@ class CompetitorDashboard extends StatefulWidget {
 }
 
 class _CompetitorDashboardState extends State<CompetitorDashboard> {
-  late Stream<DocumentSnapshot> _competitorStream;
+  String? _competitorId;
+  String? _category;
+  String? _competitorName;
   bool _hasSubmittedScore = false;
-  int? _competitorId;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -27,29 +27,82 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
   }
 
   Future<void> _loadCompetitorId() async {
-    final id = await LocalStorageService.getCompetitorId();
-    if (id != null) {
+    try {
+      final id = await LocalStorageService.getCompetitorId();
+      if (id != null) {
+        setState(() {
+          _competitorId = id.toString();
+        });
+        await _loadCompetitorDetails();
+      }
+    } catch (e) {
+      print('Error loading competitor ID: $e');
+    } finally {
       setState(() {
-        _competitorId = id;
-        _competitorStream = FirebaseFirestore.instance
-            .collection('competitors')
-            .doc(id.toString())
-            .snapshots();
+        _isLoading = false;
       });
     }
   }
 
-  Widget _buildScoreCard(String title, String score, IconData icon, double textScale) {
+  Future<void> _loadCompetitorDetails() async {
+    if (_competitorId == null) return;
+    
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('competitors')
+          .doc(_competitorId)
+          .get();
+      
+      if (doc.exists) {
+        setState(() {
+          _category = doc.data()?['category'] as String? ?? 'all';
+          _competitorName = doc.data()?['name'] as String? ?? 'Unknown';
+        });
+      }
+    } catch (e) {
+      print('Error loading competitor details: $e');
+    }
+  }
+
+  Widget _buildTitleSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome back, ${_competitorName?.split(' ').first ?? 'Climber'}! 🧗‍♂️',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompetitorHeader() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).primaryColor.withOpacity(0.8),
+            Theme.of(context).primaryColor,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Theme.of(context).primaryColor.withOpacity(0.3),
             blurRadius: 10,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -58,24 +111,177 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
         children: [
           Row(
             children: [
-              Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20 * textScale),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16 * textScale,
-                  fontWeight: FontWeight.bold,
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _competitorName ?? 'Loading...',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.tag,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '#${_competitorId ?? '...'}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.category,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _category?.toUpperCase() ?? '...',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('scores')
+                .where('competitorId', isEqualTo: _competitorId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError || !snapshot.hasData) {
+                return const SizedBox.shrink();
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+              final totalCompletedRoutes = docs.where((doc) => doc['isCompleted'] == true).length;
+              final totalScore = docs
+                  .where((doc) => doc['isCompleted'] == true)
+                  .map((doc) => doc['points'] as int)
+                  .fold<int>(0, (sum, points) => sum + points);
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Total Routes',
+                      totalCompletedRoutes.toString(),
+                      Icons.check_circle_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      'Total Score',
+                      totalScore.toString(),
+                      Icons.stars,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: Colors.white,
+                size: 16,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           Text(
-            score,
-            style: TextStyle(
-              fontSize: 24 * textScale,
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -84,55 +290,248 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
   }
 
   Widget _buildDisciplineCard({
-    required BuildContext context,
     required String title,
     required String description,
     required IconData icon,
-    required VoidCallback? onTap,
-    required double textScale,
+    required DisciplineType type,
+    required Color primaryColor,
+    required Color secondaryColor,
   }) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Opacity(
-          opacity: onTap == null ? 0.5 : 1.0,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _hasSubmittedScore
+              ? null
+              : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ScoringPage(type: type),
+                    ),
+                  ).then((_) {
+                    // Refresh the dashboard state when returning from scoring page
+                    setState(() {
+                      _loadCompetitorDetails();
+                    });
+                  });
+                },
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  icon,
-                  size: 24 * textScale,
-                  color: Theme.of(context).colorScheme.primary,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 28,
+                        color: primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            description,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18 * textScale,
-                          fontWeight: FontWeight.bold,
+                const SizedBox(height: 20),
+                if (_competitorId != null)
+                  FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('scores')
+                        .where('competitorId', isEqualTo: _competitorId)
+                        .where('type', isEqualTo: type == DisciplineType.topRope ? 'topRope' : 'boulder')
+                        .get(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        print('Error loading scores: ${snapshot.error}');
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Error loading score',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      final docs = snapshot.data?.docs ?? [];
+                      final completedRoutes = docs.where((doc) => doc['isCompleted'] == true).length;
+                      final totalScore = docs
+                          .where((doc) => doc['isCompleted'] == true)
+                          .map((doc) => doc['points'] as int)
+                          .fold<int>(0, (sum, points) => sum + points);
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          fontSize: 14 * textScale,
-                          color: Colors.grey[600],
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Completed Routes',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$completedRoutes/15',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Total Score',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    totalScore.toString(),
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16 * textScale,
-                  color: Colors.grey[400],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _hasSubmittedScore
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ScoringPage(type: type),
+                              ),
+                            ).then((_) {
+                              setState(() {
+                                _loadCompetitorDetails();
+                              });
+                            });
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Go to Score Card',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -144,7 +543,7 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_competitorId == null) {
+    if (_isLoading) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -152,371 +551,115 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
       );
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 360;
-    final isTablet = screenWidth >= 600;
-    final textScale = isSmallScreen ? 0.85 : (isTablet ? 1.2 : 1.0);
-    final padding = screenWidth < 400 ? 8.0 : (isTablet ? 24.0 : 16.0);
-
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text(
+          'Spider Kids 2025',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black
+          ),
+        ),
         centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: SizedBox(
+            height: 40,
+            child: Image.asset(
+              'assets/images/ccbklogo.png',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.settings,
+              color: Colors.grey[900],
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: _competitorStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Competitor not found'));
-          }
-
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-
-          return Column(
-            children: [
-              const SponsorBar(),
-              Container(
+      body: SafeArea(
+        child: Column(
+          children: [
+           
+            _buildCompetitorHeader(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                children: [
+                  _buildDisciplineCard(
+                    title: 'Top Rope',
+                    description: 'Complete as many top rope routes as possible',
+                    icon: Icons.vertical_align_top,
+                    type: DisciplineType.topRope,
+                    primaryColor: Colors.blue,
+                    secondaryColor: Colors.cyan,
+                  ),
+                  _buildDisciplineCard(
+                    title: 'Boulder',
+                    description: 'Complete as many boulder problems as possible',
+                    icon: Icons.rocket_launch,
+                    type: DisciplineType.boulder,
+                    primaryColor: Colors.orange,
+                    secondaryColor: Colors.amber,
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: SizedBox(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(
-                  horizontal: padding,
-                  vertical: padding * 1.5,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.blueGrey[50],
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.blueGrey[100]!,
-                      width: 1,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LeaderboardPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '#${data['id']}',
-                        style: TextStyle(
-                          fontSize: 18 * textScale,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+                  child: const Text(
+                    'View Leaderboard',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            data['name'],
-                            style: TextStyle(
-                              fontSize: 20 * textScale,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Category: ',
-                                  style: TextStyle(
-                                    fontSize: 14 * textScale,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blueGrey[600],
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: data['category'],
-                                  style: TextStyle(
-                                    fontSize: 14 * textScale,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: padding,
-                    vertical: padding * 1.5,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildScoreCard(
-                              'Top Rope',
-                              '0', // TODO: Get actual scores from Firebase
-                              Icons.height,
-                              textScale,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildScoreCard(
-                              'Boulder',
-                              '0', // TODO: Get actual scores from Firebase
-                              Icons.landscape,
-                              textScale,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: padding * 2),
-                      Text(
-                        'Disciplines',
-                        style: TextStyle(
-                          fontSize: 20 * textScale,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: padding),
-                      _buildDisciplineCard(
-                        context: context,
-                        title: 'Top Rope',
-                        description: '16 routes, max 3 attempts per route',
-                        icon: Icons.height,
-                        onTap: _hasSubmittedScore 
-                          ? null 
-                          : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ScoringPage(
-                                type: DisciplineType.topRope,
-                                scores: [], // TODO: Get actual scores from Firebase
-                                onScoreUpdate: (routeNumber, isCompleted, attempts) {
-                                  // TODO: Update scores in Firebase
-                                },
-                              ),
-                            ),
-                          ),
-                        textScale: textScale,
-                      ),
-                      SizedBox(height: padding),
-                      _buildDisciplineCard(
-                        context: context,
-                        title: 'Boulder',
-                        description: '16 problems, attempts counted',
-                        icon: Icons.landscape,
-                        onTap: _hasSubmittedScore 
-                          ? null 
-                          : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ScoringPage(
-                                type: DisciplineType.boulder,
-                                scores: [], // TODO: Get actual scores from Firebase
-                                onScoreUpdate: (routeNumber, isCompleted, attempts) {
-                                  // TODO: Update scores in Firebase
-                                },
-                              ),
-                            ),
-                          ),
-                        textScale: textScale,
-                      ),
-                      SizedBox(height: padding * 2),
-                    ],
                   ),
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      offset: const Offset(0, -2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(padding),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!_hasSubmittedScore) ...[
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Don\'t forget to submit your score when you finish climbing!',
-                                style: TextStyle(
-                                  fontSize: 12 * textScale,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Submit Final Score'),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Are you sure you want to submit your final score?'),
-                                    const SizedBox(height: 16),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Score Summary',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context).colorScheme.primary,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text('Top Rope:'),
-                                              Text(
-                                                '0', // TODO: Calculate from actual scores
-                                                style: const TextStyle(fontWeight: FontWeight.bold),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text('Boulder:'),
-                                              Text(
-                                                '0', // TODO: Calculate from actual scores
-                                                style: const TextStyle(fontWeight: FontWeight.bold),
-                                              ),
-                                            ],
-                                          ),
-                                          const Divider(),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text('Total:'),
-                                              Text(
-                                                '0', // TODO: Calculate from actual scores
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).colorScheme.primary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() => _hasSubmittedScore = true);
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text('Submit'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size(double.infinity, 48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            'Submit Final Score',
-                            style: TextStyle(
-                              fontSize: 16 * textScale,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ] else
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LeaderboardPage(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size(double.infinity, 48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            'View Leaderboard',
-                            style: TextStyle(
-                              fontSize: 16 * textScale,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }

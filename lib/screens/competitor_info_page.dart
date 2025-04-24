@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ccbk_spider_kids_comp/models/competitor.dart';
-import 'package:ccbk_spider_kids_comp/services/mock_competitor_service.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CompetitorInfoPage extends StatefulWidget {
   final Category category;
@@ -16,52 +16,32 @@ class CompetitorInfoPage extends StatefulWidget {
 }
 
 class _CompetitorInfoPageState extends State<CompetitorInfoPage> {
-  late List<Competitor> _competitors;
+  late Stream<QuerySnapshot> _competitorsStream;
 
   @override
   void initState() {
     super.initState();
-    _competitors = _getMockCompetitors();
+    _initCompetitorsStream();
   }
 
-  List<Competitor> _getMockCompetitors() {
-    final baseId = widget.category == Category.kidsA ? 1 : 
-                  widget.category == Category.kidsB ? 11 : 21;
-    final birthYear = widget.category == Category.kidsA ? 2011 : 
-                     widget.category == Category.kidsB ? 2013 : 2015;
+  void _initCompetitorsStream() {
+    final categoryValue = _getCategoryValue(widget.category);
+    print('Initializing stream for category: $categoryValue');
+    _competitorsStream = FirebaseFirestore.instance
+        .collection('competitors')
+        .where('category', isEqualTo: categoryValue)
+        .snapshots();
+  }
 
-    final names = widget.category == Category.kidsA ? [
-      'Alex Johnson', 'Emma Wilson', 'Liam Chen', 'Sophia Martinez', 'Noah Kim',
-      'Isabella Wong', 'Ethan Patel', 'Mia Rodriguez', 'Lucas Smith', 'Ava Thompson'
-    ] : widget.category == Category.kidsB ? [
-      'Oliver Brown', 'Charlotte Lee', 'William Zhang', 'Amelia Garcia', 'James Park',
-      'Harper Kim', 'Benjamin Singh', 'Evelyn Chen', 'Henry Wong', 'Luna Patel'
-    ] : [
-      'Leo Anderson', 'Chloe Tan', 'Mason Liu', 'Zoe Kim', 'Jack Wilson',
-      'Lily Chen', 'Daniel Park', 'Hannah Wong', 'Samuel Lee', 'Grace Zhang'
-    ];
-
-    return List.generate(10, (index) {
-      final id = baseId + index;
-      return Competitor(
-        id: id,
-        name: names[index],
-        birthYear: birthYear + (index % 2),
-        category: widget.category,
-        topRopeScores: List.generate(15, (i) => RouteScore(
-          routeNumber: i + 1,
-          isCompleted: false,
-          attempts: 0,
-          points: RouteScore.getPointsForRoute(i + 1),
-        )),
-        boulderScores: List.generate(15, (i) => RouteScore(
-          routeNumber: i + 1,
-          isCompleted: false,
-          attempts: 0,
-          points: RouteScore.getPointsForRoute(i + 1),
-        )),
-      );
-    });
+  String _getCategoryValue(Category category) {
+    switch (category) {
+      case Category.kidsA:
+        return 'kidsA';
+      case Category.kidsB:
+        return 'kidsB';
+      case Category.kidsC:
+        return 'kidsC';
+    }
   }
 
   @override
@@ -126,38 +106,105 @@ class _CompetitorInfoPageState extends State<CompetitorInfoPage> {
                   ),
                 ),
                 SizedBox(height: 16 * textScale),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _competitors.length,
-                  itemBuilder: (context, index) {
-                    final competitor = _competitors[index];
-                    return Card(
-                      margin: EdgeInsets.only(bottom: 8 * textScale),
-                      child: ListTile(
-                        title: Text(
-                          competitor.name,
-                          style: TextStyle(
-                            fontSize: 16 * textScale,
-                            fontWeight: FontWeight.bold,
-                          ),
+                StreamBuilder<QuerySnapshot>(
+                  stream: _competitorsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error: ${snapshot.error}',
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        subtitle: Text(
-                          'Birth Year: ${competitor.birthYear}',
-                          style: TextStyle(
-                            fontSize: 14 * textScale,
-                            color: Colors.grey[600],
-                          ),
+                      );
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final competitors = snapshot.data?.docs ?? [];
+                    print('Found ${competitors.length} competitors in category ${widget.category}');
+
+                    if (competitors.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.group_off,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No competitors found',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                        trailing: Text(
-                          '#${competitor.id}',
-                          style: TextStyle(
-                            fontSize: 16 * textScale,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
+                      );
+                    }
+
+                    // Sort competitors by name
+                    final sortedCompetitors = competitors.toList()
+                      ..sort((a, b) {
+                        final nameA = (a.data() as Map<String, dynamic>)['name'] as String;
+                        final nameB = (b.data() as Map<String, dynamic>)['name'] as String;
+                        return nameA.compareTo(nameB);
+                      });
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: sortedCompetitors.length,
+                      itemBuilder: (context, index) {
+                        final competitor = sortedCompetitors[index].data() as Map<String, dynamic>;
+                        final competitorId = sortedCompetitors[index].id;
+                        
+                        return Card(
+                          margin: EdgeInsets.only(bottom: 8 * textScale),
+                          child: ListTile(
+                            title: Text(
+                              competitor['name'] as String,
+                              style: TextStyle(
+                                fontSize: 16 * textScale,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Birth Year: ${competitor['birthYear'] ?? 'N/A'}',
+                              style: TextStyle(
+                                fontSize: 14 * textScale,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            trailing: Text(
+                              '#$competitorId',
+                              style: TextStyle(
+                                fontSize: 16 * textScale,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
                 ),

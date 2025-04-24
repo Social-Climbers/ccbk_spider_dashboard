@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:ccbk_spider_kids_comp/screens/debug_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -23,26 +22,86 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Settings'),
-      ),
-      body: ListView(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.bug_report),
-            title: const Text('Debug Tools'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DebugPage()),
-              );
-            },
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white
           ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Log Out'),
-            onTap: () => _signOut(context),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.deepOrange,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              children: [
+                Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.logout,
+                            color: Colors.red[700],
+                          ),
+                        ),
+                        title: const Text(
+                          'Log Out',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text('Sign out of your account'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _signOut(context),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                'Powered by Social Climbers Comp App',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ),
         ],
       ),
