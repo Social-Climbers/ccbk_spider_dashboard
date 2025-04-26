@@ -20,12 +20,12 @@ class LeaderboardEntry {
   factory LeaderboardEntry.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return LeaderboardEntry(
-      competitorId: data['competitorId'] as String,
-      competitorName: data['competitorName'] as String,
-      totalScore: data['totalScore'] as int,
-      completedRoutes: data['completedRoutes'] as int,
+      competitorId: data['competitorId']?.toString() ?? '',
+      competitorName: data['competitorName'] as String? ?? 'Unknown',
+      totalScore: data['totalScore'] as int? ?? 0,
+      completedRoutes: data['completedRoutes'] as int? ?? 0,
       totalAttempts: data['totalAttempts'] as int? ?? 0,
-      lastUpdated: (data['lastUpdated'] as Timestamp).toDate(),
+      lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 } 

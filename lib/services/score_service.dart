@@ -250,4 +250,106 @@ You can create it by clicking the link in the error message above.
       rethrow;
     }
   }
+
+  static Future<void> resetScores(int competitorId) async {
+    print('Resetting scores for competitor $competitorId');
+    
+    // Get competitor data for denormalization
+    final competitorDoc = await _firestore
+        .collection('competitors')
+        .doc(competitorId.toString())
+        .get();
+    
+    if (!competitorDoc.exists) {
+      throw Exception('Competitor not found');
+    }
+
+    final competitorData = competitorDoc.data()!;
+    
+    // Reset top rope scores
+    for (int i = 1; i <= 15; i++) {
+      await _firestore
+          .collection('scores')
+          .doc('${competitorId}_topRope_$i')
+          .set({
+        'competitorId': competitorId.toString(),
+        'competitorName': competitorData['name'],
+        'category': competitorData['category'],
+        'type': 'topRope',
+        'routeNumber': i,
+        'isCompleted': false,
+        'attempts': 0,
+        'points': RouteScore.getPointsForRoute(i),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Reset boulder scores
+    for (int i = 1; i <= 15; i++) {
+      await _firestore
+          .collection('scores')
+          .doc('${competitorId}_boulder_$i')
+          .set({
+        'competitorId': competitorId.toString(),
+        'competitorName': competitorData['name'],
+        'category': competitorData['category'],
+        'type': 'boulder',
+        'routeNumber': i,
+        'isCompleted': false,
+        'attempts': 0,
+        'points': RouteScore.getPointsForRoute(i),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Reset completion status
+    await _firestore
+        .collection('competitors')
+        .doc(competitorId.toString())
+        .collection('completion_status')
+        .doc('topRope')
+        .set({
+      'completed': false,
+      'completionTime': null,
+    });
+
+    await _firestore
+        .collection('competitors')
+        .doc(competitorId.toString())
+        .collection('completion_status')
+        .doc('boulder')
+        .set({
+      'completed': false,
+      'completionTime': null,
+    });
+
+    // Update leaderboard entries
+    await _updateLeaderboard(competitorId, DisciplineType.topRope, competitorData['category']);
+    await _updateLeaderboard(competitorId, DisciplineType.boulder, competitorData['category']);
+
+    print('Successfully reset scores for competitor $competitorId');
+  }
+
+  static Future<List<RouteScore>> getScores(String competitorId, DisciplineType type) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('scores')
+          .where('competitorId', isEqualTo: competitorId)
+          .where('type', isEqualTo: type == DisciplineType.topRope ? 'topRope' : 'boulder')
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return RouteScore(
+          routeNumber: data['routeNumber'] as int,
+          points: data['points'] as int,
+          isCompleted: data['isCompleted'] as bool,
+          attempts: data['attempts'] as int,
+        );
+      }).toList();
+    } catch (e) {
+      print('Error getting scores: $e');
+      return [];
+    }
+  }
 } 

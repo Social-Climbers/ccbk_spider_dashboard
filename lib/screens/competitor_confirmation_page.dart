@@ -165,8 +165,11 @@ class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage>
                                   ),
                                   const SizedBox(height: 16),
                                   _buildInfoRow(
-                                    Icons.category_outlined,
+                                    Icons.groups_outlined,
                                     'Category',
+                                    widget.competitorData['category'] == 'kidsA' ? 'Kids A' :
+                                    widget.competitorData['category'] == 'kidsB' ? 'Kids B' :
+                                    widget.competitorData['category'] == 'kidsC' ? 'Kids C' :
                                     widget.competitorData['category'],
                                   ),
                                   const SizedBox(height: 12),

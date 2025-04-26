@@ -83,6 +83,8 @@ flutter:
     - assets/images/ccbklogo.png
     - assets/images/ccbklogow.png
     - assets/images/cover.jpg
+    - assets/images/boulder.png
+    - assets/images/toperope.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

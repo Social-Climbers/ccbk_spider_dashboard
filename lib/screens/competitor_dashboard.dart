@@ -19,6 +19,10 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
   String? _competitorName;
   bool _hasSubmittedScore = false;
   bool _isLoading = true;
+  bool _isTopRopeCompleted = false;
+  bool _isBoulderCompleted = false;
+  DateTime? _topRopeCompletionTime;
+  DateTime? _boulderCompletionTime;
 
   @override
   void initState() {
@@ -34,6 +38,7 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
           _competitorId = id.toString();
         });
         await _loadCompetitorDetails();
+        await _loadCompletionStatus();
       }
     } catch (e) {
       print('Error loading competitor ID: $e');
@@ -61,6 +66,96 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
       }
     } catch (e) {
       print('Error loading competitor details: $e');
+    }
+  }
+
+  Future<void> _loadCompletionStatus() async {
+    if (_competitorId == null) return;
+
+    try {
+      final topRopeDoc = await FirebaseFirestore.instance
+          .collection('competitors')
+          .doc(_competitorId)
+          .collection('completion_status')
+          .doc('topRope')
+          .get();
+
+      final boulderDoc = await FirebaseFirestore.instance
+          .collection('competitors')
+          .doc(_competitorId)
+          .collection('completion_status')
+          .doc('boulder')
+          .get();
+
+      setState(() {
+        _isTopRopeCompleted = topRopeDoc.exists && topRopeDoc.data()?['completed'] == true;
+        _isBoulderCompleted = boulderDoc.exists && boulderDoc.data()?['completed'] == true;
+        _topRopeCompletionTime = topRopeDoc.exists ? (topRopeDoc.data()?['completionTime'] as Timestamp?)?.toDate() : null;
+        _boulderCompletionTime = boulderDoc.exists ? (boulderDoc.data()?['completionTime'] as Timestamp?)?.toDate() : null;
+      });
+    } catch (e) {
+      print('Error loading completion status: $e');
+    }
+  }
+
+  Future<void> _submitScore() async {
+    if (_competitorId == null) return;
+
+    try {
+      // Update competitor's completion status
+      await FirebaseFirestore.instance
+          .collection('competitors')
+          .doc(_competitorId)
+          .collection('completion_status')
+          .doc('topRope')
+          .set({
+        'completed': true,
+        'completionTime': FieldValue.serverTimestamp(),
+      });
+
+      await FirebaseFirestore.instance
+          .collection('competitors')
+          .doc(_competitorId)
+          .collection('completion_status')
+          .doc('boulder')
+          .set({
+        'completed': true,
+        'completionTime': FieldValue.serverTimestamp(),
+      });
+
+      setState(() {
+        _isTopRopeCompleted = true;
+        _isBoulderCompleted = true;
+        _topRopeCompletionTime = DateTime.now();
+        _boulderCompletionTime = DateTime.now();
+        _hasSubmittedScore = true;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Scores submitted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Navigate to leaderboard after successful submission
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const LeaderboardPage(),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error submitting scores: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -300,6 +395,9 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
     required Color primaryColor,
     required Color secondaryColor,
   }) {
+    final isCompleted = type == DisciplineType.topRope ? _isTopRopeCompleted : _isBoulderCompleted;
+    final completionTime = type == DisciplineType.topRope ? _topRopeCompletionTime : _boulderCompletionTime;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -316,7 +414,7 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: _hasSubmittedScore
+          onTap: isCompleted
               ? null
               : () {
                   Navigator.push(
@@ -325,7 +423,6 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                       builder: (context) => ScoringPage(type: type),
                     ),
                   ).then((_) {
-                    // Refresh the dashboard state when returning from scoring page
                     setState(() {
                       _loadCompetitorDetails();
                     });
@@ -345,10 +442,10 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                         color: primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        icon,
-                        size: 28,
-                        color: primaryColor,
+                      child: Image.asset(
+                        type == DisciplineType.topRope ? 'assets/images/toperope.png' : 'assets/images/boulder.png',
+                        width: 31,
+                        height: 31,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -430,112 +527,141 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                           .map((doc) => doc['points'] as int)
                           .fold<int>(0, (sum, points) => sum + points);
 
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Completed Routes',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'Completed Routes',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '$completedRoutes',
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '$completedRoutes/15',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
                               ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'Total Score',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        totalScore.toString(),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          if (isCompleted)
+                            Container(
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.1),
+                                color: Colors.green.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Column(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    'Total Score',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: primaryColor,
-                                    ),
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 20,
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    totalScore.toString(),
+                                    'Completed ${completionTime != null ? 'at ${completionTime.hour}:${completionTime.minute.toString().padLeft(2, '0')}' : ''}',
                                     style: TextStyle(
-                                      fontSize: 24,
+                                      color: Colors.green,
                                       fontWeight: FontWeight.bold,
-                                      color: primaryColor,
                                     ),
                                   ),
                                 ],
                               ),
+                            )
+                          else
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ScoringPage(type: type),
+                                    ),
+                                  ).then((_) {
+                                    setState(() {
+                                      _loadCompetitorDetails();
+                                    });
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryColor,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Go to Score Card',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
+                        ],
                       );
                     },
                   ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _hasSubmittedScore
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ScoringPage(type: type),
-                              ),
-                            ).then((_) {
-                              setState(() {
-                                _loadCompetitorDetails();
-                              });
-                            });
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Go to Score Card',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -634,31 +760,94 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                   ),
                 ],
               ),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LeaderboardPage(),
+              child: Column(
+                children: [
+                  if (!_isTopRopeCompleted || !_isBoulderCompleted)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _submitScore,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Submit Score',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    )
+                  else
+                    Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.green.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'All scores submitted',
+                                style: TextStyle(
+                                  color: Colors.green[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const LeaderboardPage(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'View Leaderboard',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  child: const Text(
-                    'View Leaderboard',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                ],
               ),
             ),
           ],

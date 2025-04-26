@@ -125,6 +125,28 @@ class _ScoringPageState extends State<ScoringPage> {
           !score.isCompleted,
           newAttempts,
         );
+
+        // Print top 10 routes after updating
+        final scores = await ScoreService.getScores(_competitorId!.toString(), widget.type);
+        final completedRoutes = scores
+            .where((s) => s.isCompleted)
+            .toList()
+          ..sort((a, b) => b.routeNumber.compareTo(a.routeNumber));
+        
+        final top10Routes = completedRoutes.take(10).toList();
+        final totalScore = top10Routes.fold(0, (sum, route) => sum + route.points);
+        final totalAttempts = scores.fold(0, (sum, route) => sum + route.attempts);
+        
+        print('\nTop 10 Completed Routes:');
+        print('------------------------');
+        top10Routes.forEach((route) {
+          print('Route ${route.routeNumber}: ${route.points} points');
+        });
+        print('------------------------');
+        print('Total Score: $totalScore');
+        print('Total Attempts: $totalAttempts');
+        print('------------------------\n');
+
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -262,12 +284,22 @@ class _ScoringPageState extends State<ScoringPage> {
       appBar: AppBar(
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
-        title: Text(
-          widget.type == DisciplineType.topRope ? 'Top Rope' : 'Boulder',
-          style: TextStyle(
-            fontSize: isSmallScreen ? 18 : (isTablet ? 24 : 20),
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            Image.asset(
+              widget.type == DisciplineType.topRope ? 'assets/images/toperope.png' : 'assets/images/boulder.png',
+              width: 28,
+              height: 28,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${widget.type == DisciplineType.topRope ? 'Top Rope' : 'Boulder'} Score Card',
+              style: TextStyle(
+                fontSize: isSmallScreen ? 18 : (isTablet ? 24 : 20),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
       body: StreamBuilder<List<RouteScore>>(
@@ -611,9 +643,7 @@ class _RouteCard extends StatelessWidget {
                       ),
                     ),
                     GestureDetector(
-                      onTap: type == DisciplineType.topRope && routeNumber <= 3
-                          ? null
-                          : onCompletionToggle,
+                      onTap: onCompletionToggle,
                       child: Container(
                         width: isTablet ? 36 : 28,
                         height: isTablet ? 36 : 28,
