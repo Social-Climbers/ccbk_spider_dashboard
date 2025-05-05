@@ -27,31 +27,61 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final bibNumber = _bibNumberController.text.trim();
-      final querySnapshot = await FirebaseFirestore.instance
+      print('Attempting to find competitor with ID: $bibNumber');
+      
+      // First try to get the document directly
+      final doc = await FirebaseFirestore.instance
           .collection('competitors')
-          .where('id', isEqualTo: int.parse(bibNumber))
+          .doc(bibNumber)
           .get();
 
       if (!mounted) return;
 
-      setState(() => _isLoading = false);
+      if (!doc.exists) {
+        print('Competitor not found with direct document lookup');
+        // If direct lookup fails, try the query approach
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('competitors')
+            .where('id', isEqualTo: int.parse(bibNumber))
+            .get();
 
-      if (querySnapshot.docs.isEmpty) {
-        setState(() => _errorMessage = 'Competitor not found');
-        return;
+        if (querySnapshot.docs.isEmpty) {
+          print('Competitor not found with query lookup');
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'Competitor not found. Please check your ID and try again.';
+          });
+          return;
+        }
+
+        final competitorData = querySnapshot.docs.first.data();
+        print('Found competitor with query: ${competitorData['name']}');
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CompetitorConfirmationPage(
+              competitorData: competitorData,
+              documentId: querySnapshot.docs.first.id,
+            ),
+          ),
+        );
+      } else {
+        print('Found competitor with direct lookup: ${doc.data()?['name']}');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CompetitorConfirmationPage(
+              competitorData: doc.data()!,
+              documentId: doc.id,
+            ),
+          ),
+        );
       }
 
-      final competitorData = querySnapshot.docs.first.data();
-      
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CompetitorConfirmationPage(
-            competitorData: competitorData,
-          ),
-        ),
-      );
+      setState(() => _isLoading = false);
     } catch (e) {
+      print('Error during login: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'Error: ${e.toString()}';
@@ -156,6 +186,9 @@ class _LoginPageState extends State<LoginPage> {
                             if (id == null) {
                               return 'Please enter a valid number';
                             }
+                            if (id < 1 || id > 100) {
+                              return 'ID must be between 1 and 100';
+                            }
                             return null;
                           },
                         ),
@@ -173,7 +206,7 @@ class _LoginPageState extends State<LoginPage> {
                       textAlign: TextAlign.center,
                     ),
                   ],
-                  SizedBox(height: 24 * textScale),
+                  SizedBox(height: 32 * textScale),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(

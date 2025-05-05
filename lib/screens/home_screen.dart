@@ -131,20 +131,38 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       _buildCategoryCard(
                         context,
-                        Category.kidsA,
-                        'View competitors born in 2011-2012',
+                        Category.kidsABoy,
+                        'Ages 11-12 (2011-2012)',
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       _buildCategoryCard(
                         context,
-                        Category.kidsB,
-                        'View competitors born in 2013-2014',
+                        Category.kidsAGirl,
+                        'Ages 11-12 (2011-2012)',
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       _buildCategoryCard(
                         context,
-                        Category.kidsC,
-                        'View competitors born in 2015-2018',
+                        Category.kidsBBoy,
+                        'Ages 9-10 (2013-2014)',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildCategoryCard(
+                        context,
+                        Category.kidsBGirl,
+                        'Ages 9-10 (2013-2014)',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildCategoryCard(
+                        context,
+                        Category.kidsCBoy,
+                        'Ages 5-8 (2015-2018)',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildCategoryCard(
+                        context,
+                        Category.kidsCGirl,
+                        'Ages 5-8 (2015-2018)',
                       ),
                       const SizedBox(height: 32),
                       const Text(
@@ -251,6 +269,15 @@ class HomeScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      category.gender == 'boy' ? 'Boys Division' : 'Girls Division',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: category.gender == 'boy' ? Colors.blue : Colors.pink,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],

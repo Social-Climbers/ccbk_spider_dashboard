@@ -15,7 +15,7 @@ class _CategoryPageState extends State<CategoryPage> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -43,10 +43,14 @@ class _CategoryPageState extends State<CategoryPage> with SingleTickerProviderSt
         ),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: const [
-            Tab(text: 'Kids A'),
-            Tab(text: 'Kids B'),
-            Tab(text: 'Kids C'),
+            Tab(text: 'Kids A Boys'),
+            Tab(text: 'Kids A Girls'),
+            Tab(text: 'Kids B Boys'),
+            Tab(text: 'Kids B Girls'),
+            Tab(text: 'Kids C Boys'),
+            Tab(text: 'Kids C Girls'),
           ],
         ),
       ),
@@ -55,9 +59,12 @@ class _CategoryPageState extends State<CategoryPage> with SingleTickerProviderSt
           TabBarView(
             controller: _tabController,
             children: [
-              _buildCategoryView(Category.kidsA, textScale, padding),
-              _buildCategoryView(Category.kidsB, textScale, padding),
-              _buildCategoryView(Category.kidsC, textScale, padding),
+              _buildCategoryView(Category.kidsABoy, textScale, padding),
+              _buildCategoryView(Category.kidsAGirl, textScale, padding),
+              _buildCategoryView(Category.kidsBBoy, textScale, padding),
+              _buildCategoryView(Category.kidsBGirl, textScale, padding),
+              _buildCategoryView(Category.kidsCBoy, textScale, padding),
+              _buildCategoryView(Category.kidsCGirl, textScale, padding),
             ],
           ),
           Positioned(
@@ -156,11 +163,14 @@ class _CategoryPageState extends State<CategoryPage> with SingleTickerProviderSt
 
   String _getAgeRange(Category category) {
     switch (category) {
-      case Category.kidsA:
+      case Category.kidsABoy:
+      case Category.kidsAGirl:
         return '2011-2012';
-      case Category.kidsB:
+      case Category.kidsBBoy:
+      case Category.kidsBGirl:
         return '2013-2014';
-      case Category.kidsC:
+      case Category.kidsCBoy:
+      case Category.kidsCGirl:
         return '2015-2018';
     }
   }

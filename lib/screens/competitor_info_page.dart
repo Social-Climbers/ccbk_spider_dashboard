@@ -34,13 +34,33 @@ class _CompetitorInfoPageState extends State<CompetitorInfoPage> {
   }
 
   String _getCategoryValue(Category category) {
+    return category.toString().split('.').last;
+  }
+
+  String _getAgeRange(Category category) {
     switch (category) {
-      case Category.kidsA:
-        return 'kidsA';
-      case Category.kidsB:
-        return 'kidsB';
-      case Category.kidsC:
-        return 'kidsC';
+      case Category.kidsABoy:
+      case Category.kidsAGirl:
+        return '2011-2012';
+      case Category.kidsBBoy:
+      case Category.kidsBGirl:
+        return '2013-2014';
+      case Category.kidsCBoy:
+      case Category.kidsCGirl:
+        return '2015-2018';
+    }
+  }
+
+  String _getGender(Category category) {
+    switch (category) {
+      case Category.kidsABoy:
+      case Category.kidsBBoy:
+      case Category.kidsCBoy:
+        return 'Boys';
+      case Category.kidsAGirl:
+      case Category.kidsBGirl:
+      case Category.kidsCGirl:
+        return 'Girls';
     }
   }
 
@@ -101,6 +121,13 @@ class _CompetitorInfoPageState extends State<CompetitorInfoPage> {
                             fontSize: 16 * textScale,
                           ),
                         ),
+                        SizedBox(height: 8 * textScale),
+                        Text(
+                          'Gender: ${_getGender(widget.category)}',
+                          style: TextStyle(
+                            fontSize: 16 * textScale,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -125,13 +152,36 @@ class _CompetitorInfoPageState extends State<CompetitorInfoPage> {
                               style: const TextStyle(color: Colors.red),
                               textAlign: TextAlign.center,
                             ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                // Retry loading
+                                setState(() {});
+                              },
+                              child: const Text('Retry'),
+                            ),
                           ],
                         ),
                       );
                     }
 
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text(
+                              'Loading competitors...',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
                     }
 
                     final competitors = snapshot.data?.docs ?? [];
@@ -220,16 +270,5 @@ class _CompetitorInfoPageState extends State<CompetitorInfoPage> {
         ],
       ),
     );
-  }
-
-  String _getAgeRange(Category category) {
-    switch (category) {
-      case Category.kidsA:
-        return '2011-2012';
-      case Category.kidsB:
-        return '2013-2014';
-      case Category.kidsC:
-        return '2015-2018';
-    }
   }
 } 

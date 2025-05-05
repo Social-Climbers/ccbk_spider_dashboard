@@ -118,7 +118,7 @@ You can create it by clicking the link in the error message above.
       final entryPath = 'leaderboard/$category/${type == DisciplineType.topRope ? 'topRope' : 'boulder'}/$competitorId';
       print('Updating leaderboard entry at path: $entryPath');
 
-      // Update leaderboard
+      // Update leaderboard with discipline-specific score
       await categoryDoc
           .collection(type == DisciplineType.topRope ? 'topRope' : 'boulder')
           .doc(competitorId.toString())
@@ -164,18 +164,22 @@ You can create it by clicking the link in the error message above.
     final competitorData = competitorDoc.data()!;
     
     // Check if scores already exist
-    final topRopeExists = await _checkScoresExist(competitorId, 'topRope');
-    final boulderExists = await _checkScoresExist(competitorId, 'boulder');
+    final topRopeExists = await _firestore
+        .collection('scores')
+        .doc('${competitorId}_topRope_1')
+        .get()
+        .then((doc) => doc.exists);
     
-    if (topRopeExists && boulderExists) {
-      print('Scores already exist for competitor $competitorId');
-      return;
-    }
+    final boulderExists = await _firestore
+        .collection('scores')
+        .doc('${competitorId}_boulder_1')
+        .get()
+        .then((doc) => doc.exists);
 
     // Initialize top rope scores if they don't exist
     if (!topRopeExists) {
       print('Initializing top rope scores...');
-      for (int i = 1; i <= 15; i++) {
+      for (int i = 1; i <= 15; i++) {  // 15 routes for top rope
         await _firestore
             .collection('scores')
             .doc('${competitorId}_topRope_$i')
@@ -196,7 +200,7 @@ You can create it by clicking the link in the error message above.
     // Initialize boulder scores if they don't exist
     if (!boulderExists) {
       print('Initializing boulder scores...');
-      for (int i = 1; i <= 15; i++) {
+      for (int i = 1; i <= 16; i++) {  // 16 routes for boulder
         await _firestore
             .collection('scores')
             .doc('${competitorId}_boulder_$i')
@@ -252,7 +256,7 @@ You can create it by clicking the link in the error message above.
   }
 
   static Future<void> resetScores(int competitorId) async {
-    print('Resetting scores for competitor $competitorId');
+    print('Resetting all scores for competitor $competitorId');
     
     // Get competitor data for denormalization
     final competitorDoc = await _firestore
@@ -285,7 +289,7 @@ You can create it by clicking the link in the error message above.
     }
 
     // Reset boulder scores
-    for (int i = 1; i <= 15; i++) {
+    for (int i = 1; i <= 16; i++) {
       await _firestore
           .collection('scores')
           .doc('${competitorId}_boulder_$i')
@@ -327,7 +331,107 @@ You can create it by clicking the link in the error message above.
     await _updateLeaderboard(competitorId, DisciplineType.topRope, competitorData['category']);
     await _updateLeaderboard(competitorId, DisciplineType.boulder, competitorData['category']);
 
-    print('Successfully reset scores for competitor $competitorId');
+    print('Successfully reset all scores for competitor $competitorId');
+  }
+
+  static Future<void> resetTopRopeScores(int competitorId) async {
+    print('Resetting top rope scores for competitor $competitorId');
+    
+    // Get competitor data for denormalization
+    final competitorDoc = await _firestore
+        .collection('competitors')
+        .doc(competitorId.toString())
+        .get();
+    
+    if (!competitorDoc.exists) {
+      throw Exception('Competitor not found');
+    }
+
+    final competitorData = competitorDoc.data()!;
+    
+    // Reset top rope scores
+    for (int i = 1; i <= 15; i++) {
+      await _firestore
+          .collection('scores')
+          .doc('${competitorId}_topRope_$i')
+          .set({
+        'competitorId': competitorId.toString(),
+        'competitorName': competitorData['name'],
+        'category': competitorData['category'],
+        'type': 'topRope',
+        'routeNumber': i,
+        'isCompleted': false,
+        'attempts': 0,
+        'points': RouteScore.getPointsForRoute(i),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Reset completion status
+    await _firestore
+        .collection('competitors')
+        .doc(competitorId.toString())
+        .collection('completion_status')
+        .doc('topRope')
+        .set({
+      'completed': false,
+      'completionTime': null,
+    });
+
+    // Update leaderboard entry
+    await _updateLeaderboard(competitorId, DisciplineType.topRope, competitorData['category']);
+
+    print('Successfully reset top rope scores for competitor $competitorId');
+  }
+
+  static Future<void> resetBoulderScores(int competitorId) async {
+    print('Resetting boulder scores for competitor $competitorId');
+    
+    // Get competitor data for denormalization
+    final competitorDoc = await _firestore
+        .collection('competitors')
+        .doc(competitorId.toString())
+        .get();
+    
+    if (!competitorDoc.exists) {
+      throw Exception('Competitor not found');
+    }
+
+    final competitorData = competitorDoc.data()!;
+    
+    // Reset boulder scores
+    for (int i = 1; i <= 16; i++) {
+      await _firestore
+          .collection('scores')
+          .doc('${competitorId}_boulder_$i')
+          .set({
+        'competitorId': competitorId.toString(),
+        'competitorName': competitorData['name'],
+        'category': competitorData['category'],
+        'type': 'boulder',
+        'routeNumber': i,
+        'isCompleted': false,
+        'attempts': 0,
+        'points': RouteScore.getPointsForRoute(i),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Reset completion status
+    await _firestore
+        .collection('competitors')
+        .doc(competitorId.toString())
+        .collection('completion_status')
+        .doc('boulder')
+        .set({
+      'completed': false,
+      'completionTime': null,
+    });
+
+    // Update leaderboard entry
+    await _updateLeaderboard(competitorId, DisciplineType.boulder, competitorData['category']);
+
+    print('Successfully reset boulder scores for competitor $competitorId');
   }
 
   static Future<List<RouteScore>> getScores(String competitorId, DisciplineType type) async {

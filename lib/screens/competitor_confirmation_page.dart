@@ -9,10 +9,12 @@ import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
 
 class CompetitorConfirmationPage extends StatefulWidget {
   final Map<String, dynamic> competitorData;
+  final String? documentId;
 
   const CompetitorConfirmationPage({
     super.key,
     required this.competitorData,
+    this.documentId,
   });
 
   @override
@@ -22,6 +24,19 @@ class CompetitorConfirmationPage extends StatefulWidget {
 class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage> {
   bool _isLoading = false;
 
+  String get _displayId {
+    // First try to get the ID from the document ID
+    if (widget.documentId != null) {
+      return widget.documentId!;
+    }
+    // Then try to get it from the competitor data
+    if (widget.competitorData['id'] != null) {
+      return widget.competitorData['id'].toString();
+    }
+    // If both are null, return a default value
+    return 'N/A';
+  }
+
   Future<void> _signInAnonymously(BuildContext context) async {
     setState(() => _isLoading = true);
     try {
@@ -29,11 +44,15 @@ class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage>
       await FirebaseAuth.instance.signInAnonymously();
       print('Successfully signed in anonymously');
       
-      print('Saving competitor ID: ${widget.competitorData['id']}');
-      await LocalStorageService.saveCompetitorId(widget.competitorData['id']);
+      // Use the document ID if available, otherwise use the id field
+      final idToSave = widget.documentId != null 
+          ? int.parse(widget.documentId!)
+          : widget.competitorData['id'] as int;
+      print('Saving competitor ID: $idToSave');
+      await LocalStorageService.saveCompetitorId(idToSave);
       
       print('Initializing scores...');
-      await ScoreService.initializeScores(widget.competitorData['id']);
+      await ScoreService.initializeScores(idToSave);
       print('Scores initialized successfully');
       
       if (context.mounted) {
@@ -77,7 +96,7 @@ class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage>
               SingleChildScrollView(
                 child: Column(
                   children: [
-                    const SponsorBar(isDarkTheme: false),
+                    //const SponsorBar(isDarkTheme: false),
                     Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
@@ -145,7 +164,7 @@ class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage>
                                     ),
                                     child: Center(
                                       child: Text(
-                                        '#${widget.competitorData['id']}',
+                                        '#$_displayId',
                                         style: TextStyle(
                                           fontSize: 32,
                                           fontWeight: FontWeight.bold,
@@ -167,10 +186,21 @@ class _CompetitorConfirmationPageState extends State<CompetitorConfirmationPage>
                                   _buildInfoRow(
                                     Icons.groups_outlined,
                                     'Category',
-                                    widget.competitorData['category'] == 'kidsA' ? 'Kids A' :
-                                    widget.competitorData['category'] == 'kidsB' ? 'Kids B' :
-                                    widget.competitorData['category'] == 'kidsC' ? 'Kids C' :
+                                    widget.competitorData['category'] == 'kidsABoy' ? 'Kids A Boys' :
+                                    widget.competitorData['category'] == 'kidsAGirl' ? 'Kids A Girls' :
+                                    widget.competitorData['category'] == 'kidsBBoy' ? 'Kids B Boys' :
+                                    widget.competitorData['category'] == 'kidsBGirl' ? 'Kids B Girls' :
+                                    widget.competitorData['category'] == 'kidsCBoy' ? 'Kids C Boys' :
+                                    widget.competitorData['category'] == 'kidsCGirl' ? 'Kids C Girls' :
                                     widget.competitorData['category'],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildInfoRow(
+                                    Icons.person_outline,
+                                    'Gender',
+                                    widget.competitorData['gender'] == 'boy' ? 'Boy' :
+                                    widget.competitorData['gender'] == 'girl' ? 'Girl' :
+                                    widget.competitorData['gender'],
                                   ),
                                   const SizedBox(height: 12),
                                   _buildInfoRow(

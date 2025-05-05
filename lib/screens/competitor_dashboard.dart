@@ -283,9 +283,12 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                _category == 'kidsA' ? 'Kids A' :
-                                _category == 'kidsB' ? 'Kids B' :
-                                _category == 'kidsC' ? 'Kids C' :
+                                _category == 'kidsABoy' ? 'Kids A Boys' :
+                                _category == 'kidsAGirl' ? 'Kids A Girls' :
+                                _category == 'kidsBBoy' ? 'Kids B Boys' :
+                                _category == 'kidsBGirl' ? 'Kids B Girls' :
+                                _category == 'kidsCBoy' ? 'Kids C Boys' :
+                                _category == 'kidsCGirl' ? 'Kids C Girls' :
                                 (_category ?? '...'),
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -315,10 +318,20 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
 
               final docs = snapshot.data?.docs ?? [];
               final totalCompletedRoutes = docs.where((doc) => doc['isCompleted'] == true).length;
-              final totalScore = docs
-                  .where((doc) => doc['isCompleted'] == true)
+              
+              // Calculate separate scores for top rope and boulder
+              final topRopeScore = docs
+                  .where((doc) => doc['isCompleted'] == true && doc['type'] == 'topRope')
                   .map((doc) => doc['points'] as int)
                   .fold<int>(0, (sum, points) => sum + points);
+              
+              final boulderScore = docs
+                  .where((doc) => doc['isCompleted'] == true && doc['type'] == 'boulder')
+                  .map((doc) => doc['points'] as int)
+                  .fold<int>(0, (sum, points) => sum + points);
+              
+              // Calculate total score by multiplying the two scores
+              final totalScore = topRopeScore * boulderScore;
 
               return Row(
                 children: [
@@ -763,26 +776,85 @@ class _CompetitorDashboardState extends State<CompetitorDashboard> {
               child: Column(
                 children: [
                   if (!_isTopRopeCompleted || !_isBoulderCompleted)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submitScore,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          shape: RoundedRectangleBorder(
+                    Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.orange,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Please only tap when you are finished',
+                                  style: TextStyle(
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: const Text(
-                          'Submit Score',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final shouldSubmit = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Confirm Submission'),
+                                  content: const Text('Are you sure you want to submit your scores? This action cannot be undone.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('Finish'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              
+                              if (shouldSubmit == true) {
+                                _submitScore();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Finish',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     )
                   else
                     Column(

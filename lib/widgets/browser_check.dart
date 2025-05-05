@@ -14,9 +14,6 @@ class BrowserCheck extends StatefulWidget {
 }
 
 class _BrowserCheckState extends State<BrowserCheck> {
-  bool _redirectAttempted = false;
-  bool _redirectFailed = false;
-
   bool _isInAppBrowser() {
     final userAgent = html.window.navigator.userAgent.toLowerCase();
     return userAgent.contains('instagram') || 
@@ -69,39 +66,6 @@ class _BrowserCheckState extends State<BrowserCheck> {
       ];
     }
     return [];
-  }
-
-  void _redirectToDefaultBrowser() {
-    if (!_redirectAttempted) {
-      _redirectAttempted = true;
-      try {
-        final currentUrl = html.window.location.href;
-        html.window.location.href = currentUrl;
-        
-        // If we're still here after 2 seconds, the redirect probably failed
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              _redirectFailed = true;
-            });
-          }
-        });
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _redirectFailed = true;
-          });
-        }
-      }
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (_isInAppBrowser()) {
-      _redirectToDefaultBrowser();
-    }
   }
 
   @override
@@ -163,18 +127,7 @@ class _BrowserCheckState extends State<BrowserCheck> {
                       color: Colors.white,
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: 300,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
+               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
@@ -184,7 +137,7 @@ class _BrowserCheckState extends State<BrowserCheck> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    _redirectFailed ? 'Please open in a browser' : 'Redirecting to browser...',
+                    'Please open in a browser',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.primary,
@@ -199,7 +152,7 @@ class _BrowserCheckState extends State<BrowserCheck> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  if (_redirectFailed && instructions.isNotEmpty)
+                  if (instructions.isNotEmpty)
                     Column(
                       children: [
                         Text(
@@ -220,9 +173,11 @@ class _BrowserCheckState extends State<BrowserCheck> {
                       ],
                     ),
                 ],
+              ), ],
               ),
             ),
           ),
+        
         ],
       ),
     );

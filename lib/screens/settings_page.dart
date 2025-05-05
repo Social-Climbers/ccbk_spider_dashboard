@@ -50,19 +50,19 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _showResetDialog() async {
+  Future<void> _showResetDialog(String type) async {
     _passwordController.clear();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Reset Scores'),
+          title: Text('Reset ${type == 'all' ? 'All' : type == 'topRope' ? 'Top Rope' : 'Boulder'} Scores'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'This will reset all scores to zero. This action cannot be undone.',
-                style: TextStyle(color: Colors.red),
+              Text(
+                'This will reset ${type == 'all' ? 'all' : type == 'topRope' ? 'top rope' : 'boulder'} scores to zero. This action cannot be undone.',
+                style: const TextStyle(color: Colors.red),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -94,7 +94,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (confirmed == true) {
       if (_passwordController.text == 'ccbk105') {
-        await _resetScores();
+        await _resetScores(type);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -108,18 +108,28 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _resetScores() async {
+  Future<void> _resetScores(String type) async {
     if (_isResetting) return;
 
     setState(() => _isResetting = true);
     try {
       final competitorId = await LocalStorageService.getCompetitorId();
       if (competitorId != null) {
-        await ScoreService.resetScores(competitorId);
+        switch (type) {
+          case 'all':
+            await ScoreService.resetScores(competitorId);
+            break;
+          case 'topRope':
+            await ScoreService.resetTopRopeScores(competitorId);
+            break;
+          case 'boulder':
+            await ScoreService.resetBoulderScores(competitorId);
+            break;
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Scores reset successfully'),
+            SnackBar(
+              content: Text('${type == 'all' ? 'All' : type == 'topRope' ? 'Top Rope' : 'Boulder'} scores reset successfully'),
               backgroundColor: Colors.green,
             ),
           );
@@ -208,7 +218,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ),
                         title: const Text(
-                          'Reset Scores',
+                          'Reset All Scores',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
@@ -223,7 +233,67 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                               )
                             : const Icon(Icons.chevron_right),
-                        onTap: _isResetting ? null : _showResetDialog,
+                        onTap: _isResetting ? null : () => _showResetDialog('all'),
+                      ),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.refresh,
+                            color: Colors.blue[700],
+                          ),
+                        ),
+                        title: const Text(
+                          'Reset Top Rope Scores',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text('Reset top rope scores to zero'),
+                        trailing: _isResetting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.chevron_right),
+                        onTap: _isResetting ? null : () => _showResetDialog('topRope'),
+                      ),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.refresh,
+                            color: Colors.orange[700],
+                          ),
+                        ),
+                        title: const Text(
+                          'Reset Boulder Scores',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text('Reset boulder scores to zero'),
+                        trailing: _isResetting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.chevron_right),
+                        onTap: _isResetting ? null : () => _showResetDialog('boulder'),
                       ),
                     ],
                   ),

@@ -18,14 +18,38 @@ class CategoryLeaderboardPage extends StatefulWidget {
 class _CategoryLeaderboardPageState extends State<CategoryLeaderboardPage> with TickerProviderStateMixin {
   late TabController _tabController;
   late List<Competitor> _competitors;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _competitors = MockCompetitorService.getAllCompetitors()
-        .where((c) => c.category == widget.category)
-        .toList();
+    _loadCompetitors();
+  }
+
+  Future<void> _loadCompetitors() async {
+    try {
+      setState(() => _isLoading = true);
+      await Future.delayed(const Duration(milliseconds: 500)); // Simulate network delay
+      if (!mounted) return;
+      
+      setState(() {
+        _competitors = MockCompetitorService.getAllCompetitors()
+            .where((c) => c.category == widget.category)
+            .toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading competitors: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -51,6 +75,14 @@ class _CategoryLeaderboardPageState extends State<CategoryLeaderboardPage> with 
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 360;
     final textScale = isSmallScreen ? 0.85 : 1.0;
@@ -123,7 +155,7 @@ class _CategoryLeaderboardPageState extends State<CategoryLeaderboardPage> with 
             ? competitor.totalTopRopeScore
             : scoreType == ScoreType.boulder
                 ? competitor.totalBoulderScore
-                : competitor.totalTopRopeScore + competitor.totalBoulderScore;
+                : competitor.totalCombinedScore;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),

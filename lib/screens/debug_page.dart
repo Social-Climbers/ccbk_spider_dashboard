@@ -14,12 +14,24 @@ class _DebugPageState extends State<DebugPage> {
   final _nameController = TextEditingController();
   final _birthYearController = TextEditingController();
   final _idController = TextEditingController();
-  Category _selectedCategory = Category.kidsA;
+  String _selectedGender = 'boy';
   String _status = '';
 
   // List of sample first names and last names for random generation
   final _firstNames = ['Alex', 'Sam', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Avery', 'Quinn', 'Parker'];
   final _lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+
+  Category _determineCategory(int birthYear, String gender) {
+    if (birthYear >= 2011 && birthYear <= 2012) {
+      return gender == 'boy' ? Category.kidsABoy : Category.kidsAGirl;
+    } else if (birthYear >= 2013 && birthYear <= 2014) {
+      return gender == 'boy' ? Category.kidsBBoy : Category.kidsBGirl;
+    } else if (birthYear >= 2015 && birthYear <= 2018) {
+      return gender == 'boy' ? Category.kidsCBoy : Category.kidsCGirl;
+    } else {
+      throw Exception('Invalid birth year for any category');
+    }
+  }
 
   Future<void> _deleteCompetitor(String id) async {
     try {
@@ -56,19 +68,23 @@ class _DebugPageState extends State<DebugPage> {
       final lastName = _lastNames[random.nextInt(_lastNames.length)];
       final fullName = '$firstName $lastName';
 
-      // Generate random category and valid birth year
-      final category = Category.values[random.nextInt(Category.values.length)];
+      // Generate random gender and birth year
+      final gender = random.nextBool() ? 'boy' : 'girl';
+      final ageGroup = random.nextInt(3); // 0: A, 1: B, 2: C
+      
       int birthYear;
-      switch (category) {
-        case Category.kidsA:
+      switch (ageGroup) {
+        case 0:
           birthYear = random.nextInt(2) + 2011; // 2011-2012
           break;
-        case Category.kidsB:
+        case 1:
           birthYear = random.nextInt(2) + 2013; // 2013-2014
           break;
-        case Category.kidsC:
+        case 2:
           birthYear = random.nextInt(4) + 2015; // 2015-2018
           break;
+        default:
+          birthYear = 2015;
       }
 
       // Set the values in the form
@@ -76,7 +92,7 @@ class _DebugPageState extends State<DebugPage> {
         _idController.text = nextId.toString();
         _nameController.text = fullName;
         _birthYearController.text = birthYear.toString();
-        _selectedCategory = category;
+        _selectedGender = gender;
       });
 
       setState(() => _status = 'Random competitor generated - ready to create');
@@ -92,8 +108,11 @@ class _DebugPageState extends State<DebugPage> {
       final id = int.parse(_idController.text.trim());
       final birthYear = int.parse(_birthYearController.text.trim());
       
-      if (!_selectedCategory.isValidBirthYear(birthYear)) {
-        setState(() => _status = 'Error: Birth year $birthYear is not valid for category ${_selectedCategory.displayName}');
+      // Determine category based on birth year and gender
+      final category = _determineCategory(birthYear, _selectedGender);
+      
+      if (!category.isValidBirthYear(birthYear)) {
+        setState(() => _status = 'Error: Birth year $birthYear is not valid for category ${category.displayName}');
         return;
       }
 
@@ -101,7 +120,8 @@ class _DebugPageState extends State<DebugPage> {
         id: id,
         name: _nameController.text.trim(),
         birthYear: birthYear,
-        category: _selectedCategory,
+        category: category,
+        gender: _selectedGender,
       );
 
       await FirebaseFirestore.instance
@@ -112,6 +132,7 @@ class _DebugPageState extends State<DebugPage> {
             'name': competitor.name,
             'birthYear': competitor.birthYear,
             'category': competitor.category.toString().split('.').last,
+            'gender': competitor.gender,
             'topRopeScores': [],
             'boulderScores': [],
           });
@@ -138,146 +159,81 @@ class _DebugPageState extends State<DebugPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Debug Tools'),
+        title: const Text('Debug Page'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Create Competitor',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _idController,
-                    decoration: const InputDecoration(
-                      labelText: 'ID/Bib Number',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _generateRandomCompetitor,
-                  icon: const Icon(Icons.casino),
-                  tooltip: 'Generate Random Competitor',
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
             TextField(
-              controller: _nameController,
+              controller: _idController,
               decoration: const InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
-              ),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _birthYearController,
-              decoration: const InputDecoration(
-                labelText: 'Birth Year (e.g., 2011)',
+                labelText: 'Competitor ID',
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<Category>(
-              value: _selectedCategory,
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nameController,
               decoration: const InputDecoration(
-                labelText: 'Category',
+                labelText: 'Name',
                 border: OutlineInputBorder(),
               ),
-              items: Category.values.map((category) {
-                return DropdownMenuItem(
-                  value: category,
-                  child: Text(category.displayName),
-                );
-              }).toList(),
-              onChanged: (Category? value) {
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _birthYearController,
+              decoration: const InputDecoration(
+                labelText: 'Birth Year',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedGender,
+              decoration: const InputDecoration(
+                labelText: 'Gender',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'boy',
+                  child: Text('Boy'),
+                ),
+                DropdownMenuItem(
+                  value: 'girl',
+                  child: Text('Girl'),
+                ),
+              ],
+              onChanged: (value) {
                 if (value != null) {
-                  setState(() => _selectedCategory = value);
+                  setState(() {
+                    _selectedGender = value;
+                  });
                 }
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _createCompetitor,
               child: const Text('Create Competitor'),
             ),
             const SizedBox(height: 16),
-            Text(
-              _status,
-              style: TextStyle(
-                color: _status.startsWith('Error') ? Colors.red : Colors.green,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Competitor List',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+            ElevatedButton(
+              onPressed: _generateRandomCompetitor,
+              child: const Text('Generate Random Competitor'),
             ),
             const SizedBox(height: 16),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('competitors')
-                  .orderBy('id')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                }
-
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final competitors = snapshot.data?.docs ?? [];
-
-                if (competitors.isEmpty) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('No competitors found'),
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: competitors.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(data['id'].toString()),
-                        ),
-                        title: Text(data['name']),
-                        subtitle: Text(
-                          'Category: ${data['category']}\nBirth Year: ${data['birthYear']}',
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _deleteCompetitor(doc.id),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
+            TextField(
+              controller: TextEditingController(text: _status),
+              decoration: const InputDecoration(
+                labelText: 'Status',
+                border: OutlineInputBorder(),
+              ),
+              readOnly: true,
             ),
           ],
         ),

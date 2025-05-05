@@ -3,6 +3,7 @@ class Competitor {
   final String name;
   final int birthYear;
   final Category category;
+  final String gender;
   final List<RouteScore> topRopeScores;
   final List<RouteScore> boulderScores;
 
@@ -13,6 +14,7 @@ class Competitor {
     required this.name,
     required this.birthYear,
     required this.category,
+    required this.gender,
     List<RouteScore>? topRopeScores,
     List<RouteScore>? boulderScores,
   })  : topRopeScores = topRopeScores ?? [],
@@ -49,12 +51,19 @@ class Competitor {
         .take(10)
         .fold(0, (sum, score) => sum + score.points);
   }
+
+  int get totalCombinedScore {
+    return totalTopRopeScore * totalBoulderScore;
+  }
 }
 
 enum Category {
-  kidsA,  // 2011-2012
-  kidsB,  // 2013-2014
-  kidsC,  // 2015-2018
+  kidsABoy,    // 2011-2012 Boys
+  kidsAGirl,   // 2011-2012 Girls
+  kidsBBoy,    // 2013-2014 Boys
+  kidsBGirl,   // 2013-2014 Girls
+  kidsCBoy,    // 2015-2018 Boys
+  kidsCGirl,   // 2015-2018 Girls
 }
 
 class RouteScore {
@@ -84,23 +93,59 @@ class RouteScore {
 extension CategoryExtension on Category {
   String get displayName {
     switch (this) {
-      case Category.kidsA:
-        return 'Kids A (2011-2012)';
-      case Category.kidsB:
-        return 'Kids B (2013-2014)';
-      case Category.kidsC:
-        return 'Kids C (2015-2018)';
+      case Category.kidsABoy:
+        return 'Kids A Boys (2011-2012)';
+      case Category.kidsAGirl:
+        return 'Kids A Girls (2011-2012)';
+      case Category.kidsBBoy:
+        return 'Kids B Boys (2013-2014)';
+      case Category.kidsBGirl:
+        return 'Kids B Girls (2013-2014)';
+      case Category.kidsCBoy:
+        return 'Kids C Boys (2015-2018)';
+      case Category.kidsCGirl:
+        return 'Kids C Girls (2015-2018)';
     }
   }
 
   bool isValidBirthYear(int year) {
     switch (this) {
-      case Category.kidsA:
+      case Category.kidsABoy:
+      case Category.kidsAGirl:
         return year >= 2011 && year <= 2012;
-      case Category.kidsB:
+      case Category.kidsBBoy:
+      case Category.kidsBGirl:
         return year >= 2013 && year <= 2014;
-      case Category.kidsC:
+      case Category.kidsCBoy:
+      case Category.kidsCGirl:
         return year >= 2015 && year <= 2018;
+    }
+  }
+
+  String get gender {
+    switch (this) {
+      case Category.kidsABoy:
+      case Category.kidsBBoy:
+      case Category.kidsCBoy:
+        return 'boy';
+      case Category.kidsAGirl:
+      case Category.kidsBGirl:
+      case Category.kidsCGirl:
+        return 'girl';
+    }
+  }
+
+  String get ageGroup {
+    switch (this) {
+      case Category.kidsABoy:
+      case Category.kidsAGirl:
+        return 'kidsA';
+      case Category.kidsBBoy:
+      case Category.kidsBGirl:
+        return 'kidsB';
+      case Category.kidsCBoy:
+      case Category.kidsCGirl:
+        return 'kidsC';
     }
   }
 } 

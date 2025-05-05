@@ -4,6 +4,7 @@ import 'package:ccbk_spider_kids_comp/models/leaderboard_entry.dart';
 import 'package:ccbk_spider_kids_comp/services/score_service.dart';
 import 'package:ccbk_spider_kids_comp/screens/scoring_page.dart';
 import 'package:ccbk_spider_kids_comp/widgets/sponsor_bar.dart';
+import 'package:ccbk_spider_kids_comp/models/competitor.dart';
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -14,8 +15,10 @@ class LeaderboardPage extends StatefulWidget {
 
 class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedCategory = 'Kids A (2011-2012)';
+  String _selectedCategory = 'Kids A Boys (2011-2012)';
   List<String> _categories = [];
+  static const _maxTopRopeRoutes = 15;  // 15 routes for top rope
+  static const _maxBoulderRoutes = 16;  // 16 routes for boulder
 
   @override
   void initState() {
@@ -28,9 +31,12 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
     print('Loading categories');
     setState(() {
       _categories = [
-        'Kids A (2011-2012)',
-        'Kids B (2013-2014)',
-        'Kids C (2015-2018)',
+        'Kids A Boys (2011-2012)',
+        'Kids A Girls (2011-2012)',
+        'Kids B Boys (2013-2014)',
+        'Kids B Girls (2013-2014)',
+        'Kids C Boys (2015-2018)',
+        'Kids C Girls (2015-2018)',
       ];
       // Ensure we start with a valid category
       if (!_categories.contains(_selectedCategory)) {
@@ -46,12 +52,18 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
     String categoryValue;
     
     // Convert display name to Firestore category value
-    if (displayName.contains('Kids A')) {
-      categoryValue = 'kidsA';
-    } else if (displayName.contains('Kids B')) {
-      categoryValue = 'kidsB';
-    } else if (displayName.contains('Kids C')) {
-      categoryValue = 'kidsC';
+    if (displayName.contains('Kids A Boys')) {
+      categoryValue = 'kidsABoy';
+    } else if (displayName.contains('Kids A Girls')) {
+      categoryValue = 'kidsAGirl';
+    } else if (displayName.contains('Kids B Boys')) {
+      categoryValue = 'kidsBBoy';
+    } else if (displayName.contains('Kids B Girls')) {
+      categoryValue = 'kidsBGirl';
+    } else if (displayName.contains('Kids C Boys')) {
+      categoryValue = 'kidsCBoy';
+    } else if (displayName.contains('Kids C Girls')) {
+      categoryValue = 'kidsCGirl';
     } else {
       categoryValue = displayName;
     }
@@ -107,162 +119,45 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             .toList();
         print('Converted to ${entries.length} LeaderboardEntry objects');
         
-        entries.sort((a, b) {
-          // For top rope, only sort by score
-          if (type == DisciplineType.topRope) {
-            return b.totalScore.compareTo(a.totalScore);
-          }
-          
-          // For boulder, sort by score first, then attempts
-          final scoreComparison = b.totalScore.compareTo(a.totalScore);
-          if (scoreComparison != 0) return scoreComparison;
-          return a.totalAttempts.compareTo(b.totalAttempts);
-        });
-
-        if (entries.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.emoji_events_outlined,
-                  size: 64,
-                  color: Colors.grey[300],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No scores yet',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Be the first to complete a route!',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
           itemCount: entries.length,
           itemBuilder: (context, index) {
             final entry = entries[index];
-            final rank = index + 1;
-            final isTopThree = rank <= 3;
-
             return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              elevation: 0,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: Colors.grey[200]!,
-                  width: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
+                title: Text(
+                  entry.competitorName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text('Bib #${entry.competitorId}'),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Rank with medal for top 3
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: isTopThree 
-                          ? _getRankColor(rank).withOpacity(0.1)
-                          : Colors.grey[100],
-                        shape: BoxShape.circle,
-                        border: isTopThree ? Border.all(
-                          color: _getRankColor(rank),
-                          width: 2,
-                        ) : null,
-                      ),
-                      child: Center(
-                        child: isTopThree
-                          ? Text(
-                              rank == 1 ? '🥇' : rank == 2 ? '🥈' : '🥉',
-                              style: const TextStyle(fontSize: 16),
-                            )
-                          : Text(
-                              rank.toString(),
-                              style: TextStyle(
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
+                    Text(
+                      'Score: ${entry.totalScore}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    // Climber info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            entry.competitorName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                '${entry.completedRoutes} routes',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                ' • ',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                '${entry.totalAttempts} attempts',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Score
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        entry.totalScore.toString(),
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                    Text(
+                      'Routes: ${entry.completedRoutes}/${type == DisciplineType.topRope ? _maxTopRopeRoutes : _maxBoulderRoutes}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -275,36 +170,23 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
     );
   }
 
-  Color _getRankColor(int rank) {
-    switch (rank) {
-      case 1:
-        return Colors.amber[700]!;
-      case 2:
-        return Colors.blueGrey[400]!;
-      case 3:
-        return Colors.brown[400]!;
-      default:
-        return Colors.grey[400]!;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 360;
-    final isTablet = screenWidth >= 600;
-    final textScale = isSmallScreen ? 0.85 : (isTablet ? 1.2 : 1.0);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Leaderboard'),
-        centerTitle: true,
-        backgroundColor: Colors.deepOrange,
-        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white.withOpacity(0.7),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
           indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'Top Rope'),
@@ -393,6 +275,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
           return const Center(child: CircularProgressIndicator());
         }
 
+        final topRopeDocs = topRopeSnapshot.data?.docs ?? [];
+        final topRopeEntries = topRopeDocs
+            .map((doc) => LeaderboardEntry.fromFirestore(doc))
+            .toList();
+
         return StreamBuilder<QuerySnapshot>(
           stream: ScoreService.getLeaderboardStream(categoryValue, DisciplineType.boulder),
           builder: (context, boulderSnapshot) {
@@ -422,199 +309,88 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
               return const Center(child: CircularProgressIndicator());
             }
 
-            final topRopeDocs = topRopeSnapshot.data?.docs ?? [];
             final boulderDocs = boulderSnapshot.data?.docs ?? [];
+            final boulderEntries = boulderDocs
+                .map((doc) => LeaderboardEntry.fromFirestore(doc))
+                .toList();
 
-            // Create a map of competitor IDs to their combined scores
-            final Map<String, LeaderboardEntry> combinedEntries = {};
-            
-            // Process top rope entries
-            for (var doc in topRopeDocs) {
-              final entry = LeaderboardEntry.fromFirestore(doc);
-              combinedEntries[entry.competitorId] = LeaderboardEntry(
-                competitorId: entry.competitorId,
-                competitorName: entry.competitorName,
-                totalScore: entry.totalScore,
-                completedRoutes: entry.completedRoutes,
-                totalAttempts: entry.totalAttempts,
-                lastUpdated: entry.lastUpdated,
-              );
-            }
-
-            // Add boulder scores to the combined entries
-            for (var doc in boulderDocs) {
-              final entry = LeaderboardEntry.fromFirestore(doc);
-              if (combinedEntries.containsKey(entry.competitorId)) {
-                final existingEntry = combinedEntries[entry.competitorId]!;
-                combinedEntries[entry.competitorId] = LeaderboardEntry(
+            // Combine scores and sort by total
+            final combinedEntries = <LeaderboardEntry>[];
+            for (final entry in topRopeEntries) {
+              final boulderEntry = boulderEntries.firstWhere(
+                (e) => e.competitorId == entry.competitorId,
+                orElse: () => LeaderboardEntry(
                   competitorId: entry.competitorId,
                   competitorName: entry.competitorName,
-                  totalScore: existingEntry.totalScore + entry.totalScore,
-                  completedRoutes: existingEntry.completedRoutes + entry.completedRoutes,
-                  totalAttempts: existingEntry.totalAttempts + entry.totalAttempts,
-                  lastUpdated: entry.lastUpdated.isAfter(existingEntry.lastUpdated)
-                      ? entry.lastUpdated
-                      : existingEntry.lastUpdated,
-                );
-              } else {
-                combinedEntries[entry.competitorId] = entry;
-              }
-            }
-
-            final entries = combinedEntries.values.toList()
-              ..sort((a, b) {
-                // First sort by total score (higher is better)
-                final scoreComparison = b.totalScore.compareTo(a.totalScore);
-                if (scoreComparison != 0) return scoreComparison;
-                
-                // If scores are equal, sort by attempts (fewer is better)
-                return a.totalAttempts.compareTo(b.totalAttempts);
-              });
-
-            if (entries.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.emoji_events_outlined,
-                      size: 64,
-                      color: Colors.grey[300],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No scores yet',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Be the first to complete a route!',
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                  totalScore: 0,
+                  completedRoutes: 0,
+                  totalAttempts: 0,
+                  lastUpdated: DateTime.now(),
                 ),
               );
+              int combinedScore;
+              if (entry.totalScore > 0 && boulderEntry.totalScore > 0) {
+                combinedScore = entry.totalScore * boulderEntry.totalScore;
+              } else if (entry.totalScore > 0) {
+                combinedScore = entry.totalScore;
+              } else if (boulderEntry.totalScore > 0) {
+                combinedScore = boulderEntry.totalScore;
+              } else {
+                combinedScore = 0;
+              }
+              combinedEntries.add(LeaderboardEntry(
+                competitorId: entry.competitorId,
+                competitorName: entry.competitorName,
+                totalScore: combinedScore,
+                completedRoutes: entry.completedRoutes + boulderEntry.completedRoutes,
+                totalAttempts: entry.totalAttempts + boulderEntry.totalAttempts,
+                lastUpdated: entry.lastUpdated.isAfter(boulderEntry.lastUpdated)
+                    ? entry.lastUpdated
+                    : boulderEntry.lastUpdated,
+              ));
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: entries.length,
-              itemBuilder: (context, index) {
-                final entry = entries[index];
-                final rank = index + 1;
-                final isTopThree = rank <= 3;
+            combinedEntries.sort((a, b) => b.totalScore.compareTo(a.totalScore));
 
+            return ListView.builder(
+              itemCount: combinedEntries.length,
+              itemBuilder: (context, index) {
+                final entry = combinedEntries[index];
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 0,
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.grey[200]!,
-                      width: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
+                    title: Text(
+                      entry.competitorName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text('Bib #${entry.competitorId}'),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Rank with medal for top 3
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: isTopThree 
-                              ? _getRankColor(rank).withOpacity(0.1)
-                              : Colors.grey[100],
-                            shape: BoxShape.circle,
-                            border: isTopThree ? Border.all(
-                              color: _getRankColor(rank),
-                              width: 2,
-                            ) : null,
-                          ),
-                          child: Center(
-                            child: isTopThree
-                              ? Text(
-                                  rank == 1 ? '🥇' : rank == 2 ? '🥈' : '🥉',
-                                  style: const TextStyle(fontSize: 16),
-                                )
-                              : Text(
-                                  rank.toString(),
-                                  style: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                        Text(
+                          'Score: ${entry.totalScore}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        // Climber info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                entry.competitorName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Text(
-                                    '${entry.completedRoutes} routes',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    ' • ',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${entry.totalAttempts} attempts',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Score
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            entry.totalScore.toString(),
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
+                        Text(
+                          'Routes: ${entry.completedRoutes}/${_maxTopRopeRoutes + _maxBoulderRoutes}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
                           ),
                         ),
                       ],

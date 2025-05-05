@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ccbk_spider_kids_comp/models/competitor.dart';
 import 'package:ccbk_spider_kids_comp/services/score_service.dart';
 import 'package:ccbk_spider_kids_comp/services/local_storage_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum DisciplineType {
   topRope,
@@ -23,6 +24,9 @@ class ScoringPage extends StatefulWidget {
 class _ScoringPageState extends State<ScoringPage> {
   // Constants for consistent styling
   static const _maxTopRopeAttempts = 3;
+  static const _maxBoulderAttempts = 10;
+  static const _maxTopRopeRoutes = 15;  // 15 routes for top rope
+  static const _maxBoulderRoutes = 16;  // 16 routes for boulder
   static const _maxRoutesForScore = 10;
   static const _minAttempts = 0;
   
@@ -78,6 +82,19 @@ class _ScoringPageState extends State<ScoringPage> {
   }
 
   Future<void> _showCompletionDialog(RouteScore score) async {
+    // Check if this is a boulder problem and if attempts have reached the limit
+    if (widget.type == DisciplineType.boulder && score.attempts >= _maxBoulderAttempts && !score.isCompleted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Maximum attempts (10) reached for this boulder problem'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     String title;
     String content;
     if (score.isCompleted) {
@@ -160,13 +177,111 @@ class _ScoringPageState extends State<ScoringPage> {
     }
   }
 
-  void _updateAttempts(RouteScore score, int newAttempts) {
-    if (newAttempts < _minAttempts) return;
-    if (widget.type == DisciplineType.topRope && newAttempts > _maxTopRopeAttempts) return;
+  Future<void> _showSubmitConfirmationDialog() async {
+    if (_competitorId == null) return;
+
+    try {
+      final scores = await ScoreService.getScores(_competitorId!.toString(), widget.type);
+      final completedRoutes = scores
+          .where((s) => s.isCompleted)
+          .toList()
+        ..sort((a, b) => b.routeNumber.compareTo(a.routeNumber));
+      
+      final top10Routes = completedRoutes.take(10).toList();
+      final totalScore = top10Routes.fold(0, (sum, route) => sum + route.points);
+      final totalAttempts = scores.fold(0, (sum, route) => sum + route.attempts);
+
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Submit Scores'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Are you sure you want to submit your ${widget.type == DisciplineType.topRope ? 'Top Rope' : 'Boulder'} scores?',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Text('Completed Routes: $completedRoutes'),
+                Text('Total Score: $totalScore'),
+                Text('Total Attempts: $totalAttempts'),
+                const SizedBox(height: 8),
+                if (top10Routes.isNotEmpty) ...[
+                  const Text('Top Routes:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ...top10Routes.map((route) => Text('Route ${route.routeNumber}: ${route.points} points')),
+                ],
+                const SizedBox(height: 16),
+                const Text('This action cannot be undone.', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Submit'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirmed ?? false) {
+        // Update completion status
+        await FirebaseFirestore.instance
+            .collection('competitors')
+            .doc(_competitorId.toString())
+            .collection('completion_status')
+            .doc(widget.type == DisciplineType.topRope ? 'topRope' : 'boulder')
+            .set({
+          'completed': true,
+          'completionTime': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Scores submitted successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error submitting scores: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateAttempts(RouteScore score, int newAttempts) async {
+    // Check if this is a boulder problem and if attempts would exceed the limit
+    if (widget.type == DisciplineType.boulder && newAttempts > _maxBoulderAttempts) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Maximum attempts (10) reached for this boulder problem'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     if (_competitorId != null) {
       try {
-        ScoreService.updateScore(
+        await ScoreService.updateScore(
           _competitorId!,
           widget.type,
           score.routeNumber,
@@ -413,18 +528,22 @@ class _ScoringPageState extends State<ScoringPage> {
                   Expanded(
                     child: ListView.builder(
                       padding: EdgeInsets.fromLTRB(padding, padding, padding, isTablet ? 120 : 80),
-                      itemCount: scores.length,
+                      itemCount: scores.length + 1,
                       itemBuilder: (context, index) {
-                        final score = scores[index];
-                        return _RouteCard(
-                          routeNumber: score.routeNumber,
-                          score: score,
-                          textScale: textScale,
-                          isTablet: isTablet,
-                          type: widget.type,
-                          onAttemptsUpdate: (newAttempts) => _updateAttempts(score, newAttempts),
-                          onCompletionToggle: () => _showCompletionDialog(score),
-                        );
+                        if (index < scores.length) {
+                          final score = scores[index];
+                          return _RouteCard(
+                            routeNumber: score.routeNumber,
+                            score: score,
+                            textScale: textScale,
+                            isTablet: isTablet,
+                            type: widget.type,
+                            onAttemptsUpdate: (newAttempts) => _updateAttempts(score, newAttempts),
+                            onCompletionToggle: () => _showCompletionDialog(score),
+                          );
+                        } else {
+                          return SizedBox(height: isTablet ? 120 : 80);
+                        }
                       },
                     ),
                   ),
@@ -451,71 +570,76 @@ class _ScoringPageState extends State<ScoringPage> {
                   ),
                   child: SafeArea(
                     top: false,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 24 : 16,
-                        vertical: isTablet ? 12 : 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTablet ? 24 : 16,
+                            vertical: isTablet ? 12 : 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Text(
-                                'Total\nScore',
-                                style: TextStyle(
-                                  fontSize: (isTablet ? 14 : 12) * textScale,
-                                  color: Colors.grey[600],
-                                  height: 1.2,
-                                ),
-                                textAlign: TextAlign.center,
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Total\nScore',
+                                    style: TextStyle(
+                                      fontSize: (isTablet ? 14 : 12) * textScale,
+                                      color: Colors.grey[600],
+                                      height: 1.2,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  SizedBox(height: isTablet ? 8 : 4),
+                                  Text(
+                                    _totalScore.toString(),
+                                    style: TextStyle(
+                                      fontSize: (isTablet ? 28 : 24) * textScale,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(height: isTablet ? 8 : 4),
-                              Text(
-                                _totalScore.toString(),
-                                style: TextStyle(
-                                  fontSize: (isTablet ? 28 : 24) * textScale,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Container(
+                                height: isTablet ? 40 : 32,
+                                width: 1,
+                                color: Colors.grey[300],
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Routes',
+                                    style: TextStyle(
+                                      fontSize: (isTablet ? 14 : 12) * textScale,
+                                      color: Colors.grey[600],
+                                      height: 1.2,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  SizedBox(height: isTablet ? 8 : 4),
+                                  Text(
+                                    '$_completedRoutes/${widget.type == DisciplineType.topRope ? _maxTopRopeRoutes : _maxBoulderRoutes}',
+                                    style: TextStyle(
+                                      fontSize: (isTablet ? 28 : 24) * textScale,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          Container(
-                            height: isTablet ? 40 : 32,
-                            width: 1,
-                            color: Colors.grey[300],
-                          ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Completed\nRoutes',
-                                style: TextStyle(
-                                  fontSize: (isTablet ? 14 : 12) * textScale,
-                                  color: Colors.grey[600],
-                                  height: 1.2,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: isTablet ? 8 : 4),
-                              Text(
-                                '$_completedRoutes/15',
-                                style: TextStyle(
-                                  fontSize: (isTablet ? 28 : 24) * textScale,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -596,10 +720,14 @@ class _RouteCard extends StatelessWidget {
                               Icons.remove_circle_outline,
                               size: isTablet ? 32 : 24,
                             ),
-                            onPressed: score.attempts > 0
+                            onPressed: score.attempts > 0 && 
+                                     !(type == DisciplineType.boulder && score.attempts >= _ScoringPageState._maxBoulderAttempts)
                                 ? () => onAttemptsUpdate(score.attempts - 1)
                                 : null,
-                            tooltip: score.attempts > 0 ? 'Decrease attempts' : 'Minimum attempts reached',
+                            tooltip: score.attempts > 0 && 
+                                    !(type == DisciplineType.boulder && score.attempts >= _ScoringPageState._maxBoulderAttempts)
+                                ? 'Decrease attempts'
+                                : 'Cannot decrease attempts',
                           ),
                           Text(
                             '${score.attempts}',
@@ -612,16 +740,27 @@ class _RouteCard extends StatelessWidget {
                               Icons.add_circle_outline,
                               size: isTablet ? 32 : 24,
                             ),
-                            onPressed: type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts
+                            onPressed: (type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts) ||
+                                     (type == DisciplineType.boulder && score.attempts >= _ScoringPageState._maxBoulderAttempts)
                                 ? null
                                 : () => onAttemptsUpdate(score.attempts + 1),
                             tooltip: type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts
                                 ? 'Maximum 3 attempts allowed for Top Rope'
-                                : 'Add attempt',
+                                : type == DisciplineType.boulder && score.attempts >= _ScoringPageState._maxBoulderAttempts
+                                    ? 'Maximum 10 attempts reached for Boulder'
+                                    : 'Add attempt',
                           ),
                           if (type == DisciplineType.topRope && score.attempts >= _ScoringPageState._maxTopRopeAttempts)
                             Text(
                               '(max 3)',
+                              style: TextStyle(
+                                fontSize: (isTablet ? 14 : 12) * textScale,
+                                color: Colors.grey[600],
+                              ),
+                            )
+                          else if (type == DisciplineType.boulder && score.attempts >= _ScoringPageState._maxBoulderAttempts)
+                            Text(
+                              '(max 10)',
                               style: TextStyle(
                                 fontSize: (isTablet ? 14 : 12) * textScale,
                                 color: Colors.grey[600],
